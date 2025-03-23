@@ -126,6 +126,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: grab; /* Show grabbing cursor to indicate draggable */
+        }
+        
+        .image-container::after {
+            content: "Drag from here";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            text-align: center;
+            padding: 4px;
+            font-size: 0.8em;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .image-container:hover::after {
+            opacity: 1;
         }
         .thumbnail {
             width: 100%;
@@ -155,6 +175,7 @@
         }
         .card-content {
             padding: 15px;
+            cursor: default; /* Indicate this area is not draggable */
         }
         /* Remove all custom styling for categories so we can use a simple select dropdown */
         .category {
@@ -312,6 +333,15 @@
         .gu-transit {
             opacity: 0.2;
             transform: rotate(0);
+        }
+        
+        /* Style for when image is being dragged */
+        .gu-mirror .image-container {
+            cursor: grabbing; /* Change cursor during active drag */
+        }
+        
+        .gu-mirror .card-content {
+            display: none; /* Hide metadata during drag to focus on the image */
         }
         
         /* Notification styles */
@@ -1185,7 +1215,63 @@
                     window.drake = dragula(containers, {
                         revertOnSpill: true,  /* Put the element back if drop target is invalid */
                         copy: false,          /* Elements are moved, not copied */
-                        removeOnSpill: false  /* Don't remove elements when dropped outside of containers */
+                        removeOnSpill: false, /* Don't remove elements when dropped outside of containers */
+                        moves: function(el, container, handle) {
+                            // Only allow dragging when clicking on the image container
+                            return handle.classList.contains('image-container') || 
+                                   handle.classList.contains('thumbnail');
+                        }
+                    });
+                    
+                    // Add auto-scrolling functionality during drag operations
+                    let autoScrollIntervalId = null;
+                    const scrollSpeed = 10; // Pixels per frame
+                    const scrollThreshold = 150; // Distance from edge to trigger scrolling
+                    
+                    // Start monitoring for auto-scroll when drag begins
+                    drake.on('drag', function(el, source) {
+                        startAutoScrollMonitoring();
+                    });
+                    
+                    // Stop auto-scrolling when drag ends
+                    drake.on('dragend', function() {
+                        stopAutoScrollMonitoring();
+                    });
+                    
+                    function startAutoScrollMonitoring() {
+                        // Stop any existing interval to avoid duplicates
+                        stopAutoScrollMonitoring();
+                        
+                        // Set up interval to check mouse position and scroll if needed
+                        autoScrollIntervalId = setInterval(function() {
+                            const mouseY = window.dragula_mouse_position_y || 0;
+                            const viewportHeight = window.innerHeight;
+                            
+                            // Calculate distance from top and bottom edges
+                            const distanceFromTop = mouseY;
+                            const distanceFromBottom = viewportHeight - mouseY;
+                            
+                            if (distanceFromTop < scrollThreshold) {
+                                // Near the top edge - scroll up
+                                window.scrollBy(0, -scrollSpeed * (1 - distanceFromTop/scrollThreshold));
+                            } else if (distanceFromBottom < scrollThreshold) {
+                                // Near the bottom edge - scroll down
+                                window.scrollBy(0, scrollSpeed * (1 - distanceFromBottom/scrollThreshold));
+                            }
+                        }, 16); // ~60fps
+                    }
+                    
+                    function stopAutoScrollMonitoring() {
+                        if (autoScrollIntervalId !== null) {
+                            clearInterval(autoScrollIntervalId);
+                            autoScrollIntervalId = null;
+                        }
+                    }
+                    
+                    // Track mouse position globally for auto-scrolling
+                    document.addEventListener('mousemove', function(e) {
+                        window.dragula_mouse_position_x = e.clientX;
+                        window.dragula_mouse_position_y = e.clientY;
                     });
                     
                     /* Handle when drag is complete */
