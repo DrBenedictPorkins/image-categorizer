@@ -87,6 +87,48 @@
             background-color: #e6f2ff;
         }
         
+        /* Special styling for Trash category in summary */
+        .category-stat-item:has(.category-stat-name:contains("Trash")) {
+            border-left: 3px solid #dc3545;
+            position: relative;
+        }
+        
+        /* Fallback for browsers that don't support :has or :contains */
+        .trash-category-stat {
+            border-left: 3px solid #dc3545;
+            position: relative;
+        }
+        
+        /* Tooltip for trash category in summary */
+        .trash-category-stat .category-stat-name {
+            color: #dc3545;
+            position: relative;
+        }
+        
+        .trash-category-stat .category-stat-name::after {
+            content: "Files in this category will be moved to the 'Trash' directory";
+            position: absolute;
+            top: 20px;
+            left: 0;
+            white-space: nowrap;
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: normal;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .trash-category-stat .category-stat-name:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
         .category-stat-name {
             font-weight: bold;
             color: #007bff;
@@ -142,6 +184,37 @@
             font-size: 0.8em;
             opacity: 0;
             transition: opacity 0.3s ease;
+        }
+        
+        .trash-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            z-index: 10;
+            border: none;
+            padding: 0;
+            color: #dc3545;
+            font-size: 14px;
+        }
+        
+        .image-container:hover .trash-icon {
+            opacity: 0.7;
+        }
+        
+        .trash-icon:hover {
+            opacity: 1 !important;
+            background-color: rgba(255, 255, 255, 0.95);
+            transform: scale(1.1);
         }
         
         .image-container:hover::after {
@@ -246,6 +319,45 @@
             scroll-margin-top: 20px; /* Ensures some space at the top when scrolling to this element */
         }
         
+        /* Special styling for Trash category */
+        .category-container[data-category="Trash"] {
+            border: 2px solid #dc3545;
+            background-color: #fff9f9;
+            margin-top: 30px; /* Add extra spacing before Trash */
+            position: relative; /* For tooltip positioning */
+        }
+        
+        .category-container[data-category="Trash"] .category-title-text {
+            color: #dc3545;
+            position: relative; /* For tooltip */
+        }
+        
+        /* Tooltip for Trash category */
+        .category-container[data-category="Trash"] .category-title-text::after {
+            content: "Files in this category will be moved to the 'Trash' directory";
+            position: absolute;
+            top: 100%;
+            left: 0;
+            white-space: nowrap;
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 100;
+            pointer-events: none;
+            margin-top: 5px;
+            font-weight: normal;
+        }
+        
+        .category-container[data-category="Trash"] .category-title-text:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
         .category-header {
             display: flex;
             justify-content: space-between;
@@ -285,10 +397,34 @@
             margin-left: 8px;
         }
         
+        .trash-all-category-icon {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            padding: 0;
+            margin-left: 8px;
+            color: #dc3545;
+        }
+        
         .edit-category-icon:hover {
             opacity: 1;
             border-color: #007bff;
             background-color: #f0f8ff;
+        }
+        
+        .trash-all-category-icon:hover {
+            opacity: 1;
+            border-color: #dc3545;
+            background-color: #fff9f9;
             transform: translateY(-1px);
         }
         
@@ -742,6 +878,31 @@
         const cardData = {{card_data}};
         const categoriesData = {{categories_data}};
         
+        // Initialize global data
+        window.cardData = cardData;
+        window.categoriesData = categoriesData;
+        
+        // Ensure Trash category always exists in categoriesData
+        function ensureTrashCategoryExists() {
+            if (!window.categoriesData) {
+                window.categoriesData = [];
+            }
+            
+            // Check if Trash category exists
+            const trashExists = window.categoriesData.some(cat => cat && cat.name === 'Trash');
+            
+            if (!trashExists) {
+                // Add empty Trash category
+                window.categoriesData.push({
+                    name: 'Trash',
+                    count: 0
+                });
+            }
+        }
+        
+        // Call this immediately
+        ensureTrashCategoryExists();
+        
         // Function to show the overlay with the clicked image
         window.showPreview = function(imageUrl, alt) {
             const overlay = document.getElementById('preview-overlay');
@@ -797,7 +958,13 @@
             });
             
             // Update the categoriesData array to reflect current state for script generation
-            window.categoriesData = [];
+            if (!window.categoriesData) {
+                window.categoriesData = [];
+            } else {
+                // Clear existing data but keep the array reference
+                window.categoriesData.length = 0;
+            }
+            
             document.querySelectorAll('.category-container').forEach(container => {
                 const categoryName = container.dataset.category;
                 const count = container.querySelector('.category-images').childElementCount;
@@ -849,6 +1016,23 @@
                 });
                 
                 imageContainer.appendChild(thumbnail);
+                
+                // Add trash icon (unless card is already in Trash)
+                if (data.category !== 'Trash') {
+                    const trashIcon = document.createElement('button');
+                    trashIcon.className = 'trash-icon';
+                    trashIcon.innerHTML = '🗑️';
+                    trashIcon.title = 'Move to Trash';
+                    
+                    // Add click handler to move to Trash category
+                    trashIcon.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        moveToTrash(card);
+                    });
+                    
+                    imageContainer.appendChild(trashIcon);
+                }
             }
             
             // Create the card content container
@@ -909,8 +1093,12 @@
                             }
                         });
                         
-                        // Add all other categories (sorted alphabetically)
-                        allCategories.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                        // Add all other categories (sorted alphabetically, but with Trash at the end)
+                        allCategories.sort((a, b) => {
+                            if (a === 'Trash') return 1; // Keep Trash at the end
+                            if (b === 'Trash') return -1; // Keep Trash at the end
+                            return a.toLowerCase().localeCompare(b.toLowerCase());
+                        });
                         allCategories.forEach(catName => {
                             if (catName !== newCategory) {
                                 const option = document.createElement('option');
@@ -986,6 +1174,13 @@
                 }
             });
             
+            // Sort categories alphabetically but keep Trash at the end
+            allCategories.sort((a, b) => {
+                if (a === 'Trash') return 1; // Keep Trash at the end
+                if (b === 'Trash') return -1; // Keep Trash at the end
+                return a.toLowerCase().localeCompare(b.toLowerCase());
+            });
+            
             // For each image card, update its select dropdown
             document.querySelectorAll('.image-card').forEach(card => {
                 const currentCategory = card.dataset.category;
@@ -1005,7 +1200,7 @@
                     currentOption.selected = true;
                     select.appendChild(currentOption);
                     
-                    // Add all other categories
+                    // Add all other categories (already sorted with Trash at the end)
                     allCategories.forEach(catName => {
                         if (catName !== currentCategory) {
                             const option = document.createElement('option');
@@ -1021,7 +1216,13 @@
         // Function to sync category data with current DOM state
         window.syncCategoryData = function() {
             // This ensures our internal data structures match the DOM state
-            window.categoriesData = [];
+            if (!window.categoriesData) {
+                window.categoriesData = [];
+            } else {
+                // Clear existing data but keep the array reference
+                window.categoriesData.length = 0;
+            }
+            
             document.querySelectorAll('.category-container').forEach(container => {
                 const categoryName = container.dataset.category;
                 const count = container.querySelector('.category-images').childElementCount;
@@ -1105,6 +1306,9 @@
         
         document.addEventListener('DOMContentLoaded', function() {
             try {
+                // Initialize window.categoriesData if not defined
+                window.categoriesData = window.categoriesData || categoriesData || [];
+                
                 const categoriesContainer = document.querySelector('.categories-container');
                 
                 // Set up scroll tracking for back-to-top button
@@ -1132,20 +1336,38 @@
                     titleText.className = 'category-title-text';
                     titleText.textContent = categoryData.name;
                     
-                    // Create edit icon
-                    const editIcon = document.createElement('button');
-                    editIcon.className = 'edit-category-icon';
-                    editIcon.innerHTML = '✏️';
-                    editIcon.title = 'Edit category name';
-                    
-                    // Add event listener for edit icon
-                    editIcon.addEventListener('click', function() {
-                        startCategoryEdit(container, titleText);
-                    });
-                    
                     // Add elements to title
                     title.appendChild(titleText);
-                    title.appendChild(editIcon);
+                    
+                    // Only add icons if NOT Trash category
+                    if (categoryData.name !== 'Trash') {
+                        // Create edit icon
+                        const editIcon = document.createElement('button');
+                        editIcon.className = 'edit-category-icon';
+                        editIcon.innerHTML = '✏️';
+                        editIcon.title = 'Edit category name';
+                        
+                        // Add event listener for edit icon
+                        editIcon.addEventListener('click', function() {
+                            startCategoryEdit(container, titleText);
+                        });
+                        
+                        // Create trash all icon 
+                        const trashAllIcon = document.createElement('button');
+                        trashAllIcon.className = 'trash-all-category-icon';
+                        trashAllIcon.innerHTML = '🗑️';
+                        trashAllIcon.title = 'Move all images to Trash';
+                        
+                        // Add event listener for trash all icon
+                        trashAllIcon.addEventListener('click', function() {
+                            if (confirm(`Are you sure you want to move all images from "${categoryData.name}" to Trash?`)) {
+                                moveAllToTrash(categoryData.name);
+                            }
+                        });
+                        
+                        title.appendChild(editIcon);
+                        title.appendChild(trashAllIcon);
+                    }
                     
                     const count = document.createElement('span');
                     count.className = 'category-count';
@@ -1163,11 +1385,40 @@
                     return container;
                 }
                 
-                // Create all category containers - sort alphabetically first
-                const sortedCategoriesData = [...categoriesData].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                // Make sure window.categoriesData is defined
+                window.categoriesData = window.categoriesData || [];
+                
+                // Create all category containers - sort alphabetically first, but keep Trash at the end
+                const sortedCategoriesData = [...window.categoriesData].filter(cat => cat && cat.name && cat.name !== 'Trash')
+                    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                
+                // Check if Trash category exists in the data
+                const trashCategory = window.categoriesData.find(cat => cat && cat.name === 'Trash');
+                
+                // Add all normal categories first
                 sortedCategoriesData.forEach(categoryData => {
                     categoriesContainer.appendChild(createCategoryContainer(categoryData));
                 });
+                
+                // Create Trash category if it doesn't exist, or add it last if it does
+                if (trashCategory) {
+                    categoriesContainer.appendChild(createCategoryContainer(trashCategory));
+                } else {
+                    // Create a new Trash category
+                    const trashData = {
+                        name: 'Trash',
+                        count: 0
+                    };
+                    
+                    // Add to categoriesData (ensure it's initialized)
+                    if (!window.categoriesData) {
+                        window.categoriesData = [];
+                    }
+                    window.categoriesData.push(trashData);
+                    
+                    // Create and append the Trash container
+                    categoriesContainer.appendChild(createCategoryContainer(trashData));
+                }
                 
                 // Populate category containers with cards
                 console.log("Building card elements...");
@@ -1592,6 +1843,13 @@
                 return;
             }
             
+            // Check if trying to create "Trash" category manually
+            if (newCategoryName === "Trash") {
+                errorElement.textContent = "'Trash' is a reserved category name.";
+                errorElement.style.display = 'block';
+                return;
+            }
+            
             // Check if category already exists
             const existingCategories = [];
             document.querySelectorAll('.category-container').forEach(container => {
@@ -1777,6 +2035,12 @@
                 return;
             }
             
+            // Check if the new name is the reserved "Trash" name
+            if (newName === "Trash") {
+                showNotification("'Trash' is a reserved category name");
+                return;
+            }
+            
             // Check if name already exists
             const existingCategories = [];
             let targetContainer = null;
@@ -1805,6 +2069,223 @@
         function cancelCategoryEdit(input, titleTextElement) {
             input.remove();
             titleTextElement.style.display = 'inline';
+        }
+        
+        // Function to move a card to the Trash category
+        function moveToTrash(card) {
+            const imageId = card.dataset.id;
+            const sourceCategory = card.dataset.category;
+            const trashCategoryName = 'Trash';
+            
+            // Check if Trash category exists, create it if not
+            let trashContainer = document.querySelector(`.category-container[data-category="${trashCategoryName}"]`);
+            
+            if (!trashContainer) {
+                // Create the Trash category
+                trashContainer = createTrashCategory();
+            }
+            
+            // Get the trash images container
+            const trashImagesContainer = trashContainer.querySelector('.category-images');
+            
+            // Update the card's category
+            card.dataset.category = trashCategoryName;
+            
+            // Remove the trash icon since it's now in Trash
+            const trashIcon = card.querySelector('.trash-icon');
+            if (trashIcon) {
+                trashIcon.remove();
+            }
+            
+            // Update the select dropdown
+            const select = card.querySelector('.category-select');
+            if (select) {
+                // Clear existing options
+                select.innerHTML = '';
+                
+                // Add Trash as "Current"
+                const currentOption = document.createElement('option');
+                currentOption.value = trashCategoryName;
+                currentOption.textContent = trashCategoryName + " (Current)";
+                currentOption.selected = true;
+                select.appendChild(currentOption);
+                
+                // Get all categories to add the rest
+                const allCategories = [];
+                document.querySelectorAll('.category-container').forEach(container => {
+                    const catName = container.dataset.category;
+                    if (catName && !allCategories.includes(catName)) {
+                        allCategories.push(catName);
+                    }
+                });
+                
+                // Add all other categories (sorted alphabetically, but with Trash at the end)
+                allCategories.sort((a, b) => {
+                    if (a === 'Trash') return 1; // Keep Trash at the end
+                    if (b === 'Trash') return -1; // Keep Trash at the end
+                    return a.toLowerCase().localeCompare(b.toLowerCase());
+                });
+                allCategories.forEach(catName => {
+                    if (catName !== trashCategoryName) {
+                        const option = document.createElement('option');
+                        option.value = catName;
+                        option.textContent = catName;
+                        select.appendChild(option);
+                    }
+                });
+            }
+            
+            // Move card to Trash category
+            trashImagesContainer.appendChild(card);
+            
+            // Update counts
+            window.updateCategoryCounts();
+            
+            // Show notification
+            showNotification(`Moved "${imageId}" to Trash`);
+        }
+        
+        // Function to move all items from a category to Trash
+        function moveAllToTrash(categoryName) {
+            // Don't allow moving Trash category
+            if (categoryName === 'Trash') {
+                return;
+            }
+            
+            // Find the category container
+            const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
+            if (!categoryContainer) {
+                return;
+            }
+            
+            // Find all cards in this category
+            const cards = categoryContainer.querySelectorAll('.image-card');
+            if (!cards.length) {
+                showNotification(`No images to move from "${categoryName}" to Trash`);
+                return;
+            }
+            
+            // Convert NodeList to Array to avoid issues when moving elements
+            const cardsArray = Array.from(cards);
+            
+            // Move each card to Trash
+            cardsArray.forEach(card => {
+                moveToTrash(card);
+            });
+            
+            // Show notification
+            showNotification(`Moved all images (${cardsArray.length}) from "${categoryName}" to Trash`);
+        }
+        
+        // Function to create the Trash category
+        function createTrashCategory() {
+            const categoriesContainer = document.querySelector('.categories-container');
+            
+            // Create the category container
+            const container = document.createElement('div');
+            container.className = 'category-container';
+            container.dataset.category = 'Trash';
+            container.dataset.totalImages = 0;
+            container.dataset.visibleImages = 0;
+            
+            // Create the header
+            const header = document.createElement('div');
+            header.className = 'category-header';
+            
+            // Create the title
+            const title = document.createElement('h2');
+            title.className = 'category-title';
+            
+            // Create title text
+            const titleText = document.createElement('span');
+            titleText.className = 'category-title-text';
+            titleText.textContent = 'Trash';
+            
+            // No edit icon for Trash category as it's special
+            
+            // Add title text to title
+            title.appendChild(titleText);
+            
+            // Create count
+            const count = document.createElement('span');
+            count.className = 'category-count';
+            count.textContent = '0';
+            
+            // Create images container
+            const imagesContainer = document.createElement('div');
+            imagesContainer.className = 'category-images';
+            
+            // Add elements to header
+            header.appendChild(title);
+            header.appendChild(count);
+            
+            // Add header and images container to container
+            container.appendChild(header);
+            container.appendChild(imagesContainer);
+            
+            // Add to categories container - at the end
+            categoriesContainer.appendChild(container);
+            
+            // Add to dragula containers
+            if (window.drake) {
+                window.drake.containers.push(imagesContainer);
+            }
+            
+            // Add to categoriesData (ensure it's initialized)
+            if (!window.categoriesData) {
+                window.categoriesData = [];
+            }
+            window.categoriesData.push({
+                name: 'Trash',
+                count: 0
+            });
+            
+            // Add to summary section
+            const categorySummary = document.querySelector('.category-stats');
+            if (categorySummary) {
+                const newStatItem = document.createElement('div');
+                newStatItem.className = 'category-stat-item trash-category-stat';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'category-stat-name';
+                nameSpan.textContent = 'Trash';
+                
+                const countSpan = document.createElement('span');
+                countSpan.className = 'category-stat-count';
+                countSpan.textContent = '0';
+                
+                newStatItem.appendChild(nameSpan);
+                newStatItem.appendChild(countSpan);
+                
+                // Add to summary (at the end)
+                categorySummary.appendChild(newStatItem);
+                
+                // Add click handler
+                newStatItem.addEventListener('click', function() {
+                    const categoryContainer = document.querySelector(`.category-container[data-category="Trash"]`);
+                    
+                    if (categoryContainer) {
+                        // Scroll the category container into view with a smooth animation
+                        categoryContainer.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                        
+                        // Add a highlight effect to make it obvious which category was selected
+                        categoryContainer.style.backgroundColor = '#e6f2ff';
+                        
+                        // Remove the highlight after 1.5 seconds
+                        setTimeout(() => {
+                            categoryContainer.style.backgroundColor = '';
+                        }, 1500);
+                    }
+                });
+            }
+            
+            // Update all selects
+            window.rebuildCategorySelects();
+            
+            return container;
         }
         
         // Function to show a notification
@@ -1940,9 +2421,15 @@
                     
                     // Sort stat items alphabetically
                     allStatItems.sort((a, b) => {
-                        const nameA = a.querySelector('.category-stat-name').textContent.toLowerCase();
-                        const nameB = b.querySelector('.category-stat-name').textContent.toLowerCase();
-                        return nameA.localeCompare(nameB);
+                        const nameA = a.querySelector('.category-stat-name').textContent;
+                        const nameB = b.querySelector('.category-stat-name').textContent;
+                        
+                        // Always put Trash at the end
+                        if (nameA === 'Trash') return 1;
+                        if (nameB === 'Trash') return -1;
+                        
+                        // Normal alphabetical sort for other categories
+                        return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
                     });
                     
                     // Reorder items in the DOM
@@ -2015,13 +2502,31 @@
             // Add mkdir commands
             Object.keys(categoryFiles).forEach(category => {
                 const safeCategory = escapePath(category);
-                script += "# Create directory for " + category + "\n" +
-                          "mkdir -p '" + safeCategory + "'\n\n";
+                
+                // Only create Trash directory if it has files
+                if (category === 'Trash') {
+                    if (categoryFiles[category].length > 0) {
+                        script += "# Create Trash directory (special category)\n" +
+                                  "mkdir -p '" + safeCategory + "'\n\n";
+                    } else {
+                        // Skip empty Trash category
+                        return;
+                    }
+                } else {
+                    script += "# Create directory for " + category + "\n" +
+                              "mkdir -p '" + safeCategory + "'\n\n";
+                }
             });
             
             // Add mv commands
             Object.keys(categoryFiles).forEach(category => {
                 const safeCategory = escapePath(category);
+                
+                // Skip empty Trash category
+                if (category === 'Trash' && categoryFiles[category].length === 0) {
+                    return;
+                }
+                
                 script += "# Move files to " + category + " directory\n";
                 
                 categoryFiles[category].forEach(file => {
