@@ -1,7 +1,7 @@
 [project]
-name = "gemma3-categorizer"
+name = "image-categorizer"
 version = "0.1.0"
-description = "Image categorization using Google's Gemma 3 model"
+description = "Image categorization"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
