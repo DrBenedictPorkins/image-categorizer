@@ -259,6 +259,49 @@
             font-size: 1.5em;
             color: #007bff;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .category-title-text {
+            flex-grow: 1;
+        }
+        
+        .edit-category-icon {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            padding: 0;
+            margin-left: 8px;
+        }
+        
+        .edit-category-icon:hover {
+            opacity: 1;
+            border-color: #007bff;
+            background-color: #f0f8ff;
+            transform: translateY(-1px);
+        }
+        
+        .category-edit-input {
+            font-size: inherit;
+            font-family: inherit;
+            color: inherit;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            padding: 2px 8px;
+            background-color: #f8f9fa;
+            width: 100%;
+            margin-right: 10px;
         }
         
         .category-count {
@@ -1083,7 +1126,26 @@
                     
                     const title = document.createElement('h2');
                     title.className = 'category-title';
-                    title.textContent = categoryData.name;
+                    
+                    // Create title text span to allow for inline editing
+                    const titleText = document.createElement('span');
+                    titleText.className = 'category-title-text';
+                    titleText.textContent = categoryData.name;
+                    
+                    // Create edit icon
+                    const editIcon = document.createElement('button');
+                    editIcon.className = 'edit-category-icon';
+                    editIcon.innerHTML = '✏️';
+                    editIcon.title = 'Edit category name';
+                    
+                    // Add event listener for edit icon
+                    editIcon.addEventListener('click', function() {
+                        startCategoryEdit(container, titleText);
+                    });
+                    
+                    // Add elements to title
+                    title.appendChild(titleText);
+                    title.appendChild(editIcon);
                     
                     const count = document.createElement('span');
                     count.className = 'category-count';
@@ -1658,7 +1720,255 @@
             }, 2000);
         }
         
-        // Function to generate the move script
+        // Function to start editing a category name
+        function startCategoryEdit(container, titleTextElement) {
+            const currentName = container.dataset.category;
+            const originalName = currentName; // Store for potential cancellation
+            
+            // Create an input element for editing
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'category-edit-input';
+            input.value = currentName;
+            input.dataset.originalName = originalName;
+            
+            // Replace the title text with the input
+            const titleElement = titleTextElement.parentElement;
+            titleElement.insertBefore(input, titleTextElement);
+            titleTextElement.style.display = 'none';
+            
+            // Focus the input
+            input.focus();
+            input.select();
+            
+            // Handle keydown events for Enter and Escape
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    confirmCategoryEdit(container, input, titleTextElement);
+                } else if (e.key === 'Escape') {
+                    cancelCategoryEdit(input, titleTextElement);
+                }
+            });
+            
+            // Handle blur event to save changes when clicking outside
+            input.addEventListener('blur', function() {
+                confirmCategoryEdit(container, input, titleTextElement);
+            });
+        }
+        
+        // Function to confirm category name edit
+        function confirmCategoryEdit(container, input, titleTextElement) {
+            const originalName = input.dataset.originalName;
+            const newName = input.value.trim();
+            
+            // Remove input and show text element
+            input.remove();
+            titleTextElement.style.display = 'inline';
+            
+            // Validate the new name
+            if (!newName) {
+                // Empty name, revert to original
+                showNotification("Category name cannot be empty");
+                return;
+            }
+            
+            if (newName === originalName) {
+                // No change, just exit
+                return;
+            }
+            
+            // Check if name already exists
+            const existingCategories = [];
+            let targetContainer = null;
+            document.querySelectorAll('.category-container').forEach(cont => {
+                if (cont !== container) {
+                    const catName = cont.dataset.category;
+                    existingCategories.push(catName);
+                    if (catName === newName) {
+                        targetContainer = cont;
+                    }
+                }
+            });
+            
+            if (existingCategories.includes(newName)) {
+                // Category with this name already exists
+                // Move files from this category to the existing one and remove this category
+                mergeCategories(container, targetContainer, originalName, newName);
+                return;
+            }
+            
+            // Valid new name, update category name
+            updateCategoryName(container, originalName, newName);
+        }
+        
+        // Function to cancel category name edit
+        function cancelCategoryEdit(input, titleTextElement) {
+            input.remove();
+            titleTextElement.style.display = 'inline';
+        }
+        
+        // Function to show a notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            // Hide after 2 seconds
+            setTimeout(function() {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+        
+        // Function to merge two categories and remove the source category
+        function mergeCategories(sourceContainer, targetContainer, sourceName, targetName) {
+            // 1. Get all image cards in the source category
+            const sourceCards = sourceContainer.querySelectorAll('.image-card');
+            const cardCount = sourceCards.length;
+            
+            // No cards to move, just remove the category
+            if (cardCount === 0) {
+                removeCategory(sourceContainer, sourceName);
+                showNotification(`Empty category "${sourceName}" removed`);
+                return;
+            }
+            
+            // 2. Get the target images container
+            const targetImagesContainer = targetContainer.querySelector('.category-images');
+            
+            // 3. Move all cards from source to target
+            sourceCards.forEach(card => {
+                // Update the card's category data attribute
+                card.dataset.category = targetName;
+                
+                // Update the "Current" option in the card's select dropdown
+                const select = card.querySelector('.category-select');
+                if (select) {
+                    // Find the option that has the source category as value
+                    Array.from(select.options).forEach(option => {
+                        if (option.value === sourceName && option.textContent.includes("Current")) {
+                            // Update to show target category as current
+                            option.value = targetName;
+                            option.textContent = targetName + " (Current)";
+                        } else if (option.value === targetName) {
+                            // Remove any duplicate options for the target category
+                            option.remove();
+                        }
+                    });
+                }
+                
+                // Move the card to the target container
+                targetImagesContainer.appendChild(card);
+            });
+            
+            // 4. Remove the now-empty source category
+            removeCategory(sourceContainer, sourceName);
+            
+            // 5. Update counts
+            window.updateCategoryCounts();
+            
+            // 6. Rebuild dropdowns
+            window.rebuildCategorySelects();
+            
+            // 7. Show notification
+            showNotification(`Merged ${cardCount} items from "${sourceName}" into "${targetName}"`);
+        }
+        
+        // Function to remove a category from the UI and data structures
+        function removeCategory(container, categoryName) {
+            // 1. Remove the container from dragula if it exists
+            if (window.drake) {
+                const imagesContainer = container.querySelector('.category-images');
+                const containerIndex = window.drake.containers.indexOf(imagesContainer);
+                if (containerIndex !== -1) {
+                    // Remove the container from dragula's tracked containers
+                    window.drake.containers.splice(containerIndex, 1);
+                }
+            }
+            
+            // 2. Remove from the DOM
+            container.remove();
+            
+            // 3. Remove from the summary section
+            document.querySelectorAll('.category-stat-item').forEach(item => {
+                const statName = item.querySelector('.category-stat-name');
+                if (statName && statName.textContent === categoryName) {
+                    item.remove();
+                }
+            });
+            
+            // 4. Remove from internal data structures
+            window.categoriesData = window.categoriesData.filter(cat => cat.name !== categoryName);
+            
+            // 5. Make sure all dropdowns are updated
+            window.rebuildCategorySelects();
+        }
+        
+        // Function to update a category name everywhere in the UI
+        function updateCategoryName(container, oldName, newName) {
+            // 1. Update container data attribute
+            container.dataset.category = newName;
+            
+            // 2. Update the title text
+            const titleText = container.querySelector('.category-title-text');
+            titleText.textContent = newName;
+            
+            // 3. Update all dropdown selects that reference this category
+            document.querySelectorAll('.category-select').forEach(select => {
+                Array.from(select.options).forEach(option => {
+                    if (option.value === oldName) {
+                        option.value = newName;
+                        option.textContent = option.textContent.includes("Current") 
+                            ? newName + " (Current)" 
+                            : newName;
+                    }
+                });
+            });
+            
+            // 4. Update all image cards assigned to this category
+            document.querySelectorAll(`.image-card[data-category="${oldName}"]`).forEach(card => {
+                card.dataset.category = newName;
+            });
+            
+            // 5. Update category in the summary section
+            document.querySelectorAll('.category-stat-name').forEach(statName => {
+                if (statName.textContent === oldName) {
+                    statName.textContent = newName;
+                    
+                    // Re-sort the category stats if needed
+                    const allStatItems = Array.from(document.querySelectorAll('.category-stat-item'));
+                    const parentList = statName.closest('.category-stats');
+                    
+                    // Sort stat items alphabetically
+                    allStatItems.sort((a, b) => {
+                        const nameA = a.querySelector('.category-stat-name').textContent.toLowerCase();
+                        const nameB = b.querySelector('.category-stat-name').textContent.toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    });
+                    
+                    // Reorder items in the DOM
+                    if (parentList) {
+                        allStatItems.forEach(item => {
+                            parentList.appendChild(item);
+                        });
+                    }
+                }
+            });
+            
+            // 6. Update internal data structures
+            for (let i = 0; i < window.categoriesData.length; i++) {
+                if (window.categoriesData[i].name === oldName) {
+                    window.categoriesData[i].name = newName;
+                    break;
+                }
+            }
+            
+            // 7. Show success notification
+            showNotification(`Renamed category "${oldName}" to "${newName}"`);
+            
+            // 8. Rebuild category selects to maintain alphabetical order
+            window.rebuildCategorySelects();
+        }
+        
         function generateMoveScript() {
             const scriptModal = document.getElementById('script-modal');
             const scriptContent = document.getElementById('script-content');
