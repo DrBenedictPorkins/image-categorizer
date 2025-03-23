@@ -233,6 +233,8 @@
             min-height: 100px;
         }
         
+        
+        
         /* Group categories styling for initial view */
         .group-categories {
             background-color: #e9ecef;
@@ -307,8 +309,9 @@
         /* Generate script button */
         .view-toggle {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             margin-bottom: 20px;
+            padding: 0 20px;
         }
         
         .generate-script-btn {
@@ -318,10 +321,128 @@
             padding: 8px 15px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .generate-script-btn:hover {
             background-color: #bd2130;
+        }
+        
+        .add-category-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .add-category-btn:hover {
+            background-color: #218838;
+        }
+        
+        /* New Category Modal */
+        #category-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            overflow: auto;
+        }
+        
+        .category-modal-content {
+            background-color: #f8f9fa;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .category-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .category-modal-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .category-input-group {
+            margin-bottom: 20px;
+        }
+        
+        .category-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .category-input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .category-input-group .error-message {
+            color: #dc3545;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .category-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+        
+        .create-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .create-btn:hover {
+            background-color: #218838;
         }
         
         /* Script modal */
@@ -414,9 +535,14 @@
     
     {{summary}}
     
-    <!-- Generate script button -->
+    <!-- Button bar -->
     <div class="view-toggle">
-        <button id="generate-script" class="generate-script-btn">Generate Move Script</button>
+        <div class="left-actions">
+            <button id="add-category" class="add-category-btn">+</button>
+        </div>
+        <div class="right-actions">
+            <button id="generate-script" class="generate-script-btn">Generate Move Script</button>
+        </div>
     </div>
     
     <!-- Categories view (drag and drop enabled) -->
@@ -446,6 +572,27 @@
         </div>
     </div>
     
+    <!-- New Category Modal -->
+    <div id="category-modal">
+        <div class="category-modal-content">
+            <div class="category-modal-header">
+                <h2 class="category-modal-title">Add New Category</h2>
+                <span class="close-modal" id="close-category-modal">&times;</span>
+            </div>
+            <div class="category-input-group">
+                <label for="category-name">Category Name:</label>
+                <input type="text" id="category-name" placeholder="Enter a name for the new category" maxlength="30">
+                <div id="category-error" class="error-message">
+                    Please enter a valid category name using only letters, numbers, and underscores.
+                </div>
+            </div>
+            <div class="category-modal-actions">
+                <button class="cancel-btn" id="cancel-category">Cancel</button>
+                <button class="create-btn" id="create-category">Create Category</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="footer">
         <p>Generated by Gemma3 Categorizer | Using Salesforce BLIP for image analysis</p>
     </div>
@@ -472,14 +619,29 @@
         window.updateCategoryCounts = function() {
             // Update counts in the main category containers
             document.querySelectorAll('.category-container').forEach(container => {
-                const count = container.querySelector('.category-images').childElementCount;
+                const imagesContainer = container.querySelector('.category-images');
+                const totalCount = imagesContainer.childElementCount;
                 const countElement = container.querySelector('.category-count');
-                if (countElement) {
-                    countElement.textContent = count;
-                    
-                    // Also update data attributes for script generation
-                    container.dataset.count = count;
+                
+                // Update visible/hidden counts
+                const visibleImages = imagesContainer.querySelectorAll('.image-card:not(.hidden-image)').length;
+                const hiddenImages = totalCount - visibleImages;
+                
+                // Update the dataset values
+                container.dataset.totalImages = totalCount;
+                if (!container.dataset.visibleImages || parseInt(container.dataset.visibleImages) > totalCount) {
+                    container.dataset.visibleImages = Math.min(3, totalCount);
                 }
+                
+                if (countElement) {
+                    countElement.textContent = totalCount;
+                    // Also update data attributes for script generation
+                    container.dataset.count = totalCount;
+                }
+                
+                // Simply update the dataset totalImages value
+                container.dataset.totalImages = totalCount;
+                container.dataset.visibleImages = totalCount;
                 
                 // Update count in the summary stats if it exists
                 const categoryName = container.dataset.category;
@@ -489,7 +651,7 @@
                         if (nameEl.textContent.trim() === categoryName) {
                             const statCount = nameEl.parentElement.querySelector('.category-stat-count');
                             if (statCount) {
-                                statCount.textContent = count;
+                                statCount.textContent = totalCount;
                             }
                         }
                     });
@@ -571,7 +733,8 @@
                 const imageId = cardElement.dataset.id;
                 
                 // Skip if selecting the current category (first option)
-                if (newCategory === data.category) {
+                const currentCategory = cardElement.dataset.category;
+                if (newCategory === currentCategory) {
                     return;
                 }
                 
@@ -585,6 +748,39 @@
                     
                     // Update data attribute
                     cardElement.dataset.category = newCategory;
+                    
+                    // Immediately update the select dropdown to show the new category as current
+                    const select = cardElement.querySelector('.category-select');
+                    if (select) {
+                        // Clear existing options
+                        select.innerHTML = '';
+                        
+                        // Add new category as "Current"
+                        const currentOption = document.createElement('option');
+                        currentOption.value = newCategory;
+                        currentOption.textContent = newCategory + " (Current)";
+                        currentOption.selected = true;
+                        select.appendChild(currentOption);
+                        
+                        // Get all categories to add the rest
+                        const allCategories = [];
+                        document.querySelectorAll('.category-container').forEach(container => {
+                            const catName = container.dataset.category;
+                            if (catName && !allCategories.includes(catName)) {
+                                allCategories.push(catName);
+                            }
+                        });
+                        
+                        // Add all other categories
+                        allCategories.forEach(catName => {
+                            if (catName !== newCategory) {
+                                const option = document.createElement('option');
+                                option.value = catName;
+                                option.textContent = catName;
+                                select.appendChild(option);
+                            }
+                        });
+                    }
                     
                     // Update counts
                     window.updateCategoryCounts();
@@ -750,6 +946,8 @@
                     const container = document.createElement('div');
                     container.className = 'category-container';
                     container.dataset.category = categoryData.name;
+                    container.dataset.totalImages = categoryData.count;
+                    container.dataset.visibleImages = categoryData.count; // Show all images
                     
                     const header = document.createElement('div');
                     header.className = 'category-header';
@@ -770,6 +968,7 @@
                     container.appendChild(header);
                     container.appendChild(imagesContainer);
                     
+                    
                     return container;
                 }
                 
@@ -782,13 +981,29 @@
                 console.log("Building card elements...");
                 
                 // Add cards to their respective category containers
+                const categorizedCards = {};
+                
+                // First organize cards by category
                 cardData.forEach(data => {
-                    // Find the category container for this card
-                    const categoryContainer = document.querySelector('.category-container[data-category="' + data.category + '"] .category-images');
-                    if (categoryContainer) {
-                        categoryContainer.appendChild(createCard(data));
+                    if (!categorizedCards[data.category]) {
+                        categorizedCards[data.category] = [];
                     }
+                    categorizedCards[data.category].push(data);
                 });
+                
+                // Then add cards to their respective containers, with hiding logic
+                for (const category in categorizedCards) {
+                    const cards = categorizedCards[category];
+                    const categoryContainer = document.querySelector('.category-container[data-category="' + category + '"] .category-images');
+                    const visibleCount = parseInt(document.querySelector('.category-container[data-category="' + category + '"]').dataset.visibleImages);
+                    
+                    if (categoryContainer) {
+                        cards.forEach((data) => {
+                            const card = createCard(data);
+                            categoryContainer.appendChild(card);
+                        });
+                    }
+                }
                 
                 console.log("Categories populated successfully");
                 
@@ -885,13 +1100,80 @@
                             /* Update the category display in the card */
                             const categoryElement = el.querySelector('.category');
                             if (categoryElement && targetCategory) {
-                                /* Update the category text visibly */
-                                categoryElement.textContent = targetCategory;
-                                
-                                /* Recreate the dropdown div that was lost */
-                                const newDropdownDiv = document.createElement('div');
-                                newDropdownDiv.className = 'category-dropdown';
-                                categoryElement.appendChild(newDropdownDiv);
+                                /* Instead of updating text, update the select dropdown */
+                                const selectElement = categoryElement.querySelector('select');
+                                if (selectElement) {
+                                    /* Update selected option */
+                                    for (let i = 0; i < selectElement.options.length; i++) {
+                                        if (selectElement.options[i].value === targetCategory) {
+                                            selectElement.selectedIndex = i;
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    /* If select element doesn't exist, recreate the entire category element */
+                                    categoryElement.innerHTML = '';
+                                    
+                                    /* Create a new select dropdown */
+                                    const categorySelect = document.createElement('select');
+                                    categorySelect.className = 'category-select';
+                                    categorySelect.title = 'Select to change category';
+                                    
+                                    /* Add current category as first option */
+                                    const currentOption = document.createElement('option');
+                                    currentOption.value = targetCategory;
+                                    currentOption.textContent = targetCategory + " (Current)";
+                                    currentOption.selected = true;
+                                    categorySelect.appendChild(currentOption);
+                                    
+                                    /* Add other categories */
+                                    document.querySelectorAll('.category-container').forEach(container => {
+                                        const catName = container.dataset.category;
+                                        if (catName && catName !== targetCategory) {
+                                            const option = document.createElement('option');
+                                            option.value = catName;
+                                            option.textContent = catName;
+                                            categorySelect.appendChild(option);
+                                        }
+                                    });
+                                    
+                                    /* Add event listener to handle future changes */
+                                    categorySelect.addEventListener('change', function(e) {
+                                        const newCategory = this.value;
+                                        const cardElement = this.closest('.image-card');
+                                        const imageId = cardElement.dataset.id;
+                                        
+                                        /* Find target container */
+                                        const targetContainer = document.querySelector('.category-container[data-category="' + newCategory + '"] .category-images');
+                                        if (targetContainer) {
+                                            /* Move card to new category */
+                                            targetContainer.appendChild(cardElement);
+                                            
+                                            /* Update data attribute */
+                                            cardElement.dataset.category = newCategory;
+                                            
+                                            /* Update counts */
+                                            window.updateCategoryCounts();
+                                            
+                                            /* Show notification */
+                                            const notification = document.getElementById('notification');
+                                            notification.style.display = 'block';
+                                            notification.textContent = "Moved \"" + imageId + "\" to " + newCategory;
+                                            
+                                            /* Hide notification after 2 seconds */
+                                            setTimeout(function() {
+                                                notification.style.display = 'none';
+                                            }, 2000);
+                                            
+                                            /* Rebuild the select options */
+                                            setTimeout(function() {
+                                                window.rebuildCategorySelects();
+                                            }, 100);
+                                        }
+                                    });
+                                    
+                                    categoryElement.appendChild(categorySelect);
+                                }
                                 
                                 /* Update data attribute on the element for consistency */
                                 el.dataset.category = targetCategory;
@@ -925,6 +1207,42 @@
                 
                 // Initialize all the select dropdowns
                 window.rebuildCategorySelects();
+                
+                // Set up the add category button
+                document.getElementById('add-category').addEventListener('click', function() {
+                    document.getElementById('category-modal').style.display = 'block';
+                    document.getElementById('category-name').value = '';
+                    document.getElementById('category-error').style.display = 'none';
+                });
+                
+                // Close the category modal when clicking X
+                document.getElementById('close-category-modal').addEventListener('click', function() {
+                    document.getElementById('category-modal').style.display = 'none';
+                });
+                
+                // Close category modal when clicking cancel button
+                document.getElementById('cancel-category').addEventListener('click', function() {
+                    document.getElementById('category-modal').style.display = 'none';
+                });
+                
+                // Close category modal when clicking outside
+                window.addEventListener('click', function(event) {
+                    const modal = document.getElementById('category-modal');
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+                
+                // Handle creating a new category
+                document.getElementById('create-category').addEventListener('click', createNewCategory);
+                
+                // Allow Enter key to submit when input is focused
+                document.getElementById('category-name').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        createNewCategory();
+                    }
+                });
+                
             } catch (error) {
                 console.error("Error initializing views:", error);
             }
@@ -1050,6 +1368,125 @@
                 }, 0);
             }
         };
+        
+        // Function to create a new category
+        function createNewCategory() {
+            const categoryNameInput = document.getElementById('category-name');
+            const categoryName = categoryNameInput.value.trim();
+            const errorElement = document.getElementById('category-error');
+            
+            // Validate category name - only allow letters, numbers, and underscores
+            const validNameRegex = /^[a-zA-Z0-9_]+$/;
+            
+            if (!categoryName) {
+                errorElement.textContent = "Category name cannot be empty.";
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            if (!validNameRegex.test(categoryName)) {
+                errorElement.textContent = "Category name can only contain letters, numbers, and underscores.";
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            // Check if category already exists
+            const existingCategories = [];
+            document.querySelectorAll('.category-container').forEach(container => {
+                existingCategories.push(container.dataset.category);
+            });
+            
+            if (existingCategories.includes(categoryName)) {
+                errorElement.textContent = "A category with this name already exists.";
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            // Create a new category container
+            const categoriesContainer = document.querySelector('.categories-container');
+            
+            // Function to create a category container (copied from earlier)
+            function createCategoryContainer(name) {
+                const container = document.createElement('div');
+                container.className = 'category-container';
+                container.dataset.category = name;
+                container.dataset.totalImages = 0;
+                container.dataset.visibleImages = 0; // Will be updated automatically
+                
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                
+                const title = document.createElement('h2');
+                title.className = 'category-title';
+                title.textContent = name;
+                
+                const count = document.createElement('span');
+                count.className = 'category-count';
+                count.textContent = '0';
+                
+                const imagesContainer = document.createElement('div');
+                imagesContainer.className = 'category-images';
+                
+                header.appendChild(title);
+                header.appendChild(count);
+                container.appendChild(header);
+                container.appendChild(imagesContainer);
+                
+                
+                return container;
+            }
+            
+            // Add the new category container
+            categoriesContainer.appendChild(createCategoryContainer(categoryName));
+            
+            // Update the category stats in the summary
+            const categorySummary = document.querySelector('.category-stats');
+            if (categorySummary) {
+                const newStatItem = document.createElement('div');
+                newStatItem.className = 'category-stat-item';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'category-stat-name';
+                nameSpan.textContent = categoryName;
+                
+                const countSpan = document.createElement('span');
+                countSpan.className = 'category-stat-count';
+                countSpan.textContent = '0';
+                
+                newStatItem.appendChild(nameSpan);
+                newStatItem.appendChild(countSpan);
+                
+                categorySummary.appendChild(newStatItem);
+            }
+            
+            // Close the modal
+            document.getElementById('category-modal').style.display = 'none';
+            
+            // Add the new category to internal data
+            window.categoriesData.push({
+                name: categoryName,
+                count: 0
+            });
+            
+            // Update dragula to include the new container
+            const newContainer = document.querySelector(`.category-container[data-category="${categoryName}"] .category-images`);
+            if (newContainer && window.drake) {
+                window.drake.containers.push(newContainer);
+            }
+            
+            // Rebuild all category selects to include the new category
+            window.rebuildCategorySelects();
+            
+            // Show notification
+            const notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            notification.textContent = `New category "${categoryName}" created`;
+            
+            // Hide notification after 2 seconds
+            setTimeout(function() {
+                notification.style.display = 'none';
+            }, 2000);
+        }
         
         // Function to generate the move script
         function generateMoveScript() {
