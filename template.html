@@ -54,6 +54,20 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        .directory-structure h3 {
+            margin-bottom: 10px;
+        }
+        
+        .directory-structure::after {
+            content: "Click on a category to scroll to it";
+            display: block;
+            font-size: 0.8em;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
         .category-stats {
             display: flex;
             flex-direction: column;
@@ -65,6 +79,12 @@
             justify-content: space-between;
             padding: 5px 10px;
             border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .category-stat-item:hover {
+            background-color: #e6f2ff;
         }
         
         .category-stat-name {
@@ -201,6 +221,8 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease;
+            scroll-margin-top: 20px; /* Ensures some space at the top when scrolling to this element */
         }
         
         .category-header {
@@ -295,7 +317,7 @@
         /* Notification styles */
         .notification {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
             background: #28a745;
             color: white;
@@ -304,6 +326,12 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             display: none;
             z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         /* Generate script button */
@@ -525,6 +553,36 @@
         #categories-view {
             display: block;
         }
+        
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, background-color 0.3s;
+            z-index: 100;
+        }
+        
+        .back-to-top:hover {
+            background-color: #0056b3;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
@@ -557,6 +615,13 @@
     
     <!-- Notification for user feedback -->
     <div class="notification" id="notification">Image moved successfully!</div>
+    
+    <!-- Back to top button -->
+    <div id="back-to-top" class="back-to-top" title="Back to Suggested Categories">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 19V5M5 12l7-7 7 7"/>
+        </svg>
+    </div>
     
     <!-- Script generation modal -->
     <div id="script-modal" class="modal">
@@ -916,27 +981,60 @@
             console.log('Data synced with DOM');
         };
         
-        // Helper function to reattach category click handlers
+        // Helper function for category interaction - revised for select-based UI
         window.reattachCategoryClickHandlers = function() {
-            console.log("Reattaching category click handlers");
-            document.querySelectorAll('.category').forEach(categoryElement => {
-                // Remove existing click handlers to avoid duplicates
-                const oldElement = categoryElement;
-                const newElement = oldElement.cloneNode(true);
-                oldElement.parentNode.replaceChild(newElement, oldElement);
-                
-                // Add new click handler
-                newElement.addEventListener('click', function(e) {
-                    console.log("Category element clicked");
-                    window.showCategoryOptions(this);
-                });
-            });
+            console.log("This function is no longer needed with select-based UI");
+            // With the select-based UI, event handlers are attached directly when the select elements are created
+            // This function is kept for compatibility with code that might call it
+            
+            // Let's rebuild the category selects instead
+            window.rebuildCategorySelects();
         };
         
         // Initialize the data for our app
+        // Function to track scroll position and show/hide back to top button
+        function setupScrollTracking() {
+            const backToTopButton = document.getElementById('back-to-top');
+            const summarySection = document.querySelector('.directory-structure');
+            
+            if (!backToTopButton || !summarySection) return;
+            
+            // Get the position of the summary section
+            function getSummaryPosition() {
+                return summarySection.getBoundingClientRect();
+            }
+            
+            // Check if we should show the back-to-top button
+            function checkScrollPosition() {
+                const summaryRect = getSummaryPosition();
+                
+                // Show button when summary is no longer visible (scrolled past)
+                if (summaryRect.bottom < 0) {
+                    backToTopButton.classList.add('visible');
+                } else {
+                    backToTopButton.classList.remove('visible');
+                }
+            }
+            
+            // Set up scroll listener
+            window.addEventListener('scroll', checkScrollPosition);
+            
+            // Initial check
+            checkScrollPosition();
+            
+            // Handle click on back-to-top button
+            backToTopButton.addEventListener('click', function() {
+                // Scroll to the summary section
+                summarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 const categoriesContainer = document.querySelector('.categories-container');
+                
+                // Set up scroll tracking for back-to-top button
+                setupScrollTracking();
                 
                 // Create category containers from data
                 categoriesContainer.innerHTML = '';
@@ -1208,6 +1306,30 @@
                 // Initialize all the select dropdowns
                 window.rebuildCategorySelects();
                 
+                // Add click handlers for category stats items to enable scrolling to categories
+                document.querySelectorAll('.category-stat-item').forEach(statItem => {
+                    statItem.addEventListener('click', function() {
+                        const categoryName = this.querySelector('.category-stat-name').textContent.trim();
+                        const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
+                        
+                        if (categoryContainer) {
+                            // Scroll the category container into view with a smooth animation
+                            categoryContainer.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'start' 
+                            });
+                            
+                            // Add a highlight effect to make it obvious which category was selected
+                            categoryContainer.style.backgroundColor = '#e6f2ff';
+                            
+                            // Remove the highlight after 1.5 seconds
+                            setTimeout(() => {
+                                categoryContainer.style.backgroundColor = '';
+                            }, 1500);
+                        }
+                    });
+                });
+                
                 // Set up the add category button
                 document.getElementById('add-category').addEventListener('click', function() {
                     document.getElementById('category-modal').style.display = 'block';
@@ -1248,125 +1370,39 @@
             }
         });
         
-        // Function to show category dropdown options
+        // Function to show category dropdown options - this is kept for compatibility but is not used with the select-based UI
+        // The select dropdown handles category changes directly via its change event
         window.showCategoryOptions = function(categoryElement) {
-            console.log("Category clicked:", categoryElement);
+            console.log("Category clicked - Note: This function is deprecated in the select-based UI");
             
-            // Get necessary elements
-            const dropdownElement = categoryElement.querySelector('.category-dropdown');
-            
-            // Get the current category text without the dropdown text
-            let currentCategory = categoryElement.textContent.trim();
-            // Handle case where dropdown items might be included in the text
-            if (dropdownElement) {
-                const clone = categoryElement.cloneNode(true);
-                const dropdown = clone.querySelector('.category-dropdown');
-                if (dropdown) {
-                    clone.removeChild(dropdown);
+            // The new UI uses <select> elements instead of custom dropdowns
+            // Find and focus the select element to open the dropdown
+            const selectElement = categoryElement.querySelector('.category-select');
+            if (selectElement) {
+                // Focus and click to open the dropdown in most browsers
+                selectElement.focus();
+                
+                try {
+                    // Try to simulate a mouse click to open the dropdown
+                    const event = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    selectElement.dispatchEvent(event);
+                } catch (e) {
+                    console.log("Could not simulate mousedown event, using focus instead");
                 }
-                currentCategory = clone.textContent.trim();
-            }
-            
-            const cardElement = categoryElement.closest('.image-card');
-            const imageId = cardElement.dataset.id;
-            
-            console.log("Current category:", currentCategory);
-            console.log("Image ID:", imageId);
-            
-            // Clear existing dropdown items
-            if (dropdownElement) {
-                dropdownElement.innerHTML = '';
-            } else {
-                console.error("Dropdown element not found");
+                
                 return;
             }
             
-            // Populate dropdown with all category options except current one
-            let categoriesAdded = 0;
-            document.querySelectorAll('.category-container').forEach(container => {
-                const categoryName = container.dataset.category;
-                if (categoryName && categoryName !== currentCategory) {
-                    const dropdownItem = document.createElement('div');
-                    dropdownItem.className = 'category-dropdown-item';
-                    dropdownItem.textContent = categoryName;
-                    
-                    dropdownItem.addEventListener('click', function(e) {
-                        e.stopPropagation(); // Prevent triggering parent click
-                        console.log("Clicked on category:", categoryName);
-                        
-                        // Get the source and target containers
-                        const sourceContainer = cardElement.parentElement;
-                        const targetContainer = document.querySelector('.category-container[data-category="' + categoryName + '"] .category-images');
-                        
-                        if (sourceContainer && targetContainer) {
-                            console.log("Moving card from", currentCategory, "to", categoryName);
-                            
-                            // Move the card to the new category
-                            targetContainer.appendChild(cardElement);
-                            
-                            // Update the category text (need to clear it first to avoid nesting)
-                            categoryElement.textContent = categoryName;
-                            
-                            // Recreate the dropdown div that was lost
-                            const newDropdownDiv = document.createElement('div');
-                            newDropdownDiv.className = 'category-dropdown';
-                            categoryElement.appendChild(newDropdownDiv);
-                            
-                            // Update data attribute
-                            cardElement.dataset.category = categoryName;
-                            
-                            // Update all counts and sync data
-                            window.updateCategoryCounts();
-                            window.syncCategoryData();
-                            
-                            // Reattach click handlers to all categories
-                            setTimeout(function() {
-                                window.reattachCategoryClickHandlers();
-                            }, 200);
-                            
-                            // Show notification
-                            const notification = document.getElementById('notification');
-                            notification.style.display = 'block';
-                            notification.textContent = "Moved \"" + imageId + "\" to " + categoryName;
-                            
-                            // Hide notification after 2 seconds
-                            setTimeout(function() {
-                                notification.style.display = 'none';
-                            }, 2000);
-                            
-                            // Hide the dropdown
-                            dropdownElement.style.display = 'none';
-                        } else {
-                            console.error("Source or target container not found");
-                        }
-                    });
-                    
-                    dropdownElement.appendChild(dropdownItem);
-                    categoriesAdded++;
-                }
-            });
+            console.error("Select element not found in category element");
             
-            console.log("Added", categoriesAdded, "categories to dropdown");
-            
-            // Toggle dropdown visibility
-            if (dropdownElement.style.display === 'block') {
-                console.log("Hiding dropdown");
-                dropdownElement.style.display = 'none';
-            } else {
-                console.log("Showing dropdown");
-                dropdownElement.style.display = 'block';
-                
-                // Add a click event listener to document to close dropdown when clicking outside
-                setTimeout(() => {
-                    const closeDropdown = function(e) {
-                        if (!categoryElement.contains(e.target)) {
-                            dropdownElement.style.display = 'none';
-                            document.removeEventListener('click', closeDropdown);
-                        }
-                    };
-                    document.addEventListener('click', closeDropdown);
-                }, 0);
-            }
+            // Rebuild all select dropdowns to ensure proper state
+            setTimeout(function() {
+                window.rebuildCategorySelects();
+            }, 100);
         };
         
         // Function to create a new category
