@@ -836,7 +836,8 @@
                             }
                         });
                         
-                        // Add all other categories
+                        // Add all other categories (sorted alphabetically)
+                        allCategories.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
                         allCategories.forEach(catName => {
                             if (catName !== newCategory) {
                                 const option = document.createElement('option');
@@ -1070,8 +1071,9 @@
                     return container;
                 }
                 
-                // Create all category containers
-                categoriesData.forEach(categoryData => {
+                // Create all category containers - sort alphabetically first
+                const sortedCategoriesData = [...categoriesData].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                sortedCategoriesData.forEach(categoryData => {
                     categoriesContainer.appendChild(createCategoryContainer(categoryData));
                 });
                 
@@ -1224,15 +1226,24 @@
                                     currentOption.selected = true;
                                     categorySelect.appendChild(currentOption);
                                     
-                                    /* Add other categories */
+                                    /* Add other categories (sorted alphabetically) */
+                                    const allCatNames = [];
                                     document.querySelectorAll('.category-container').forEach(container => {
-                                        const catName = container.dataset.category;
-                                        if (catName && catName !== targetCategory) {
-                                            const option = document.createElement('option');
-                                            option.value = catName;
-                                            option.textContent = catName;
-                                            categorySelect.appendChild(option);
+                                        const name = container.dataset.category;
+                                        if (name && name !== targetCategory) {
+                                            allCatNames.push(name);
                                         }
+                                    });
+                                    
+                                    // Sort alphabetically
+                                    allCatNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                                    
+                                    // Add each category option
+                                    allCatNames.forEach(catName => {
+                                        const option = document.createElement('option');
+                                        option.value = catName;
+                                        option.textContent = catName;
+                                        categorySelect.appendChild(option);
                                     });
                                     
                                     /* Add event listener to handle future changes */
@@ -1307,7 +1318,14 @@
                 window.rebuildCategorySelects();
                 
                 // Add click handlers for category stats items to enable scrolling to categories
-                document.querySelectorAll('.category-stat-item').forEach(statItem => {
+                // Add category click handlers to the stats items (sort alphabetically first)
+                const statItems = Array.from(document.querySelectorAll('.category-stat-item'));
+                statItems.sort((a, b) => {
+                    const nameA = a.querySelector('.category-stat-name').textContent.toLowerCase();
+                    const nameB = b.querySelector('.category-stat-name').textContent.toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                statItems.forEach(statItem => {
                     statItem.addEventListener('click', function() {
                         const categoryName = this.querySelector('.category-stat-name').textContent.trim();
                         const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
@@ -1408,19 +1426,19 @@
         // Function to create a new category
         function createNewCategory() {
             const categoryNameInput = document.getElementById('category-name');
-            const categoryName = categoryNameInput.value.trim();
+            const newCategoryName = categoryNameInput.value.trim();
             const errorElement = document.getElementById('category-error');
             
             // Validate category name - only allow letters, numbers, and underscores
             const validNameRegex = /^[a-zA-Z0-9_]+$/;
             
-            if (!categoryName) {
+            if (!newCategoryName) {
                 errorElement.textContent = "Category name cannot be empty.";
                 errorElement.style.display = 'block';
                 return;
             }
             
-            if (!validNameRegex.test(categoryName)) {
+            if (!validNameRegex.test(newCategoryName)) {
                 errorElement.textContent = "Category name can only contain letters, numbers, and underscores.";
                 errorElement.style.display = 'block';
                 return;
@@ -1432,7 +1450,7 @@
                 existingCategories.push(container.dataset.category);
             });
             
-            if (existingCategories.includes(categoryName)) {
+            if (existingCategories.includes(newCategoryName)) {
                 errorElement.textContent = "A category with this name already exists.";
                 errorElement.style.display = 'block';
                 return;
@@ -1473,17 +1491,25 @@
             }
             
             // Add the new category container
-            categoriesContainer.appendChild(createCategoryContainer(categoryName));
+            categoriesContainer.appendChild(createCategoryContainer(newCategoryName));
             
-            // Update the category stats in the summary
+            // Update the category stats in the summary - insert in alphabetical order
             const categorySummary = document.querySelector('.category-stats');
             if (categorySummary) {
+                // Get all existing category names to determine insertion position
+                const existingCategoryNames = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
+                    .map(elem => elem.textContent);
+                existingCategoryNames.push(newCategoryName);
+                // Sort all names alphabetically
+                existingCategoryNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                // Find the index of our new category
+                const newCategoryIndex = existingCategoryNames.indexOf(newCategoryName);
                 const newStatItem = document.createElement('div');
                 newStatItem.className = 'category-stat-item';
                 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'category-stat-name';
-                nameSpan.textContent = categoryName;
+                nameSpan.textContent = newCategoryName;
                 
                 const countSpan = document.createElement('span');
                 countSpan.className = 'category-stat-count';
@@ -1492,7 +1518,29 @@
                 newStatItem.appendChild(nameSpan);
                 newStatItem.appendChild(countSpan);
                 
-                categorySummary.appendChild(newStatItem);
+                // Insert in the correct alphabetical position
+                if (newCategoryIndex === existingCategoryNames.length - 1) {
+                    // Last element, just append
+                    categorySummary.appendChild(newStatItem);
+                } else if (newCategoryIndex === 0) {
+                    // First element, insert at beginning
+                    categorySummary.insertBefore(newStatItem, categorySummary.firstChild);
+                } else {
+                    // Middle element, find the element after which we should insert
+                    const prevCategoryName = existingCategoryNames[newCategoryIndex - 1];
+                    const prevCategoryElement = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
+                        .find(elem => elem.textContent === prevCategoryName);
+                    if (prevCategoryElement) {
+                        const prevStatItem = prevCategoryElement.closest('.category-stat-item');
+                        if (prevStatItem && prevStatItem.nextSibling) {
+                            categorySummary.insertBefore(newStatItem, prevStatItem.nextSibling);
+                        } else {
+                            categorySummary.appendChild(newStatItem);
+                        }
+                    } else {
+                        categorySummary.appendChild(newStatItem);
+                    }
+                }
             }
             
             // Close the modal
@@ -1500,12 +1548,12 @@
             
             // Add the new category to internal data
             window.categoriesData.push({
-                name: categoryName,
+                name: newCategoryName,
                 count: 0
             });
             
             // Update dragula to include the new container
-            const newContainer = document.querySelector(`.category-container[data-category="${categoryName}"] .category-images`);
+            const newContainer = document.querySelector(`.category-container[data-category="${newCategoryName}"] .category-images`);
             if (newContainer && window.drake) {
                 window.drake.containers.push(newContainer);
             }
@@ -1516,7 +1564,7 @@
             // Show notification
             const notification = document.getElementById('notification');
             notification.style.display = 'block';
-            notification.textContent = `New category "${categoryName}" created`;
+            notification.textContent = `New category "${newCategoryName}" created`;
             
             // Hide notification after 2 seconds
             setTimeout(function() {

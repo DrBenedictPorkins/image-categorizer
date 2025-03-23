@@ -552,8 +552,8 @@ def generate_html_report(directory: str, results: List[Tuple[str, str, str]],
         for category, files in group_categories.items():
             category_stats.append((category, len(files)))
         
-        # Sort by category name
-        category_stats.sort(key=lambda x: x[0])
+        # Sort by category name alphabetically
+        category_stats.sort(key=lambda x: x[0].lower())
         
         summary_html += """
             <div class="directory-structure">
