@@ -551,9 +551,13 @@ def generate_html_report(directory: str, results: List[Tuple[str, str, str]],
         category_stats = []
         for category, files in group_categories.items():
             category_stats.append((category, len(files)))
+            
+        # Ensure Trash category exists in the list
+        if not any(category == 'Trash' for category, _ in category_stats):
+            category_stats.append(('Trash', 0))
         
-        # Sort by category name alphabetically
-        category_stats.sort(key=lambda x: x[0].lower())
+        # Sort by category name alphabetically, but keep Trash at the end
+        category_stats.sort(key=lambda x: ('zzz' if x[0] == 'Trash' else x[0].lower()))
         
         summary_html += """
             <div class="directory-structure">
@@ -561,8 +565,11 @@ def generate_html_report(directory: str, results: List[Tuple[str, str, str]],
                 <div class="category-stats">"""
                 
         for category, count in category_stats:
+            # Add special class for Trash category
+            extra_class = " trash-category-stat" if category == "Trash" else ""
+            
             summary_html += f"""
-                    <div class="category-stat-item">
+                    <div class="category-stat-item{extra_class}">
                         <span class="category-stat-name">{category}</span>
                         <span class="category-stat-count">{count}</span>
                     </div>"""
