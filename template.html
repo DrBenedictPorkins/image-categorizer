@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Categorization Report</title>
+    <!-- Include dragula for drag-and-drop functionality -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .summary {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .summary-main {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .directory-structure {
+            flex: 1;
+            min-width: 250px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .category-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .category-stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .category-stat-name {
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .category-stat-count {
+            background-color: #007bff;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.85em;
+            min-width: 25px;
+            text-align: center;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+        }
+        .image-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            cursor: move;
+        }
+        .image-card:hover {
+            transform: translateY(-5px);
+        }
+        .image-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            background-color: #f1f1f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .fullsize-preview {
+            max-width: 70vw;  /* Reduced from 90vw */
+            max-height: 70vh; /* Reduced from 90vh */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 5px solid white;
+            background-color: white;
+            object-fit: contain; /* Maintain aspect ratio */
+        }
+        .card-content {
+            padding: 15px;
+        }
+        /* Remove all custom styling for categories so we can use a simple select dropdown */
+        .category {
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        /* Style the select dropdown */
+        .category-select {
+            font-weight: bold;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .category-select:hover {
+            background-color: #0069d9;
+        }
+        
+        .category-select option {
+            background-color: white;
+            color: #333;
+            padding: 10px;
+        }
+        .filename {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .description {
+            font-size: 0.95em;
+            line-height: 1.5;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        /* Category containers for drag and drop */
+        .categories-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .category-container {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .category-title {
+            font-size: 1.5em;
+            color: #007bff;
+            margin: 0;
+        }
+        
+        .category-count {
+            background-color: #007bff;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.9em;
+        }
+        
+        .category-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            min-height: 100px;
+        }
+        
+        /* Group categories styling for initial view */
+        .group-categories {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .category-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .category-card h3 {
+            color: #007bff;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .category-card ul {
+            padding-left: 20px;
+            margin-bottom: 5px;
+        }
+        
+        /* Dragula styles */
+        .gu-mirror {
+            position: fixed !important;
+            margin: 0 !important;
+            z-index: 9999 !important;
+            opacity: 0.8;
+            transform: rotate(3deg);
+        }
+        .gu-hide {
+            display: none !important;
+        }
+        .gu-unselectable {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
+        .gu-transit {
+            opacity: 0.2;
+            transform: rotate(0);
+        }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 9999;
+        }
+        
+        /* Generate script button */
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .generate-script-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .generate-script-btn:hover {
+            background-color: #bd2130;
+        }
+        
+        /* Script modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: #f8f9fa;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .close-modal {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+        
+        .close-modal:hover {
+            color: #333;
+        }
+        
+        .script-content {
+            background-color: #2c3e50;
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .copy-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .copy-btn:hover {
+            background-color: #218838;
+        }
+        
+        /* Categories view */
+        #categories-view {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Image Categorization Report</h1>
+        <p>Generated on {{timestamp}}</p>
+    </div>
+    
+    {{summary}}
+    
+    <!-- Generate script button -->
+    <div class="view-toggle">
+        <button id="generate-script" class="generate-script-btn">Generate Move Script</button>
+    </div>
+    
+    <!-- Categories view (drag and drop enabled) -->
+    <div id="categories-view">
+        <div class="categories-container"></div>
+    </div>
+    
+    <!-- Preview overlay for full-size images -->
+    <div id="preview-overlay" class="preview-overlay">
+        <img id="preview-image" class="fullsize-preview">
+    </div>
+    
+    <!-- Notification for user feedback -->
+    <div class="notification" id="notification">Image moved successfully!</div>
+    
+    <!-- Script generation modal -->
+    <div id="script-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Bash Script for Moving Files</h2>
+                <span class="close-modal" id="close-modal">&times;</span>
+            </div>
+            <div class="script-content" id="script-content">
+                # Script is being generated...
+            </div>
+            <button class="copy-btn" id="copy-btn">Copy to Clipboard</button>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Generated by Gemma3 Categorizer | Using Salesforce BLIP for image analysis</p>
+    </div>
+    
+    <!-- Include Dragula for drag and drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
+    <script>
+        // Initialize with card data
+        const cardData = {{card_data}};
+        const categoriesData = {{categories_data}};
+        
+        // Function to show the overlay with the clicked image
+        window.showPreview = function(imageUrl, alt) {
+            const overlay = document.getElementById('preview-overlay');
+            const previewImg = document.getElementById('preview-image');
+            
+            previewImg.src = imageUrl;
+            previewImg.alt = alt || 'Full size preview';
+            
+            overlay.style.display = 'flex';
+        }
+        
+        // Define updateCategoryCounts function globally before it's used
+        window.updateCategoryCounts = function() {
+            // Update counts in the main category containers
+            document.querySelectorAll('.category-container').forEach(container => {
+                const count = container.querySelector('.category-images').childElementCount;
+                const countElement = container.querySelector('.category-count');
+                if (countElement) {
+                    countElement.textContent = count;
+                    
+                    // Also update data attributes for script generation
+                    container.dataset.count = count;
+                }
+                
+                // Update count in the summary stats if it exists
+                const categoryName = container.dataset.category;
+                if (categoryName) {
+                    // Find the category stat item by its text content
+                    document.querySelectorAll('.category-stat-name').forEach(nameEl => {
+                        if (nameEl.textContent.trim() === categoryName) {
+                            const statCount = nameEl.parentElement.querySelector('.category-stat-count');
+                            if (statCount) {
+                                statCount.textContent = count;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Update the categoriesData array to reflect current state for script generation
+            window.categoriesData = [];
+            document.querySelectorAll('.category-container').forEach(container => {
+                const categoryName = container.dataset.category;
+                const count = container.querySelector('.category-images').childElementCount;
+                if (categoryName) {
+                    window.categoriesData.push({
+                        name: categoryName,
+                        count: count
+                    });
+                }
+            });
+            
+            console.log('Category counts updated');
+        };
+        
+        // Function to create a card element from data
+        function createCard(data) {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            card.dataset.id = data.filename;
+            card.dataset.category = data.category;
+            
+            // Create elements programmatically instead of using innerHTML
+            // This ensures event handlers are properly attached
+            
+            // Create the image container
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+            
+            if (data.error) {
+                // Error card
+                imageContainer.style.backgroundColor = '#ffeeee';
+                const errorText = document.createElement('div');
+                errorText.style.textAlign = 'center';
+                errorText.style.color = '#cc0000';
+                errorText.textContent = 'Image Loading Error';
+                imageContainer.appendChild(errorText);
+            } else {
+                // Normal card with image
+                const thumbnail = document.createElement('img');
+                thumbnail.className = 'thumbnail';
+                thumbnail.src = data.thumbnail;
+                thumbnail.alt = data.filename;
+                
+                // Add click handler for image preview
+                thumbnail.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.showPreview(this.src, this.alt);
+                });
+                
+                imageContainer.appendChild(thumbnail);
+            }
+            
+            // Create the card content container
+            const cardContent = document.createElement('div');
+            cardContent.className = 'card-content';
+            
+            // Create the category container
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'category';
+            
+            // Create a select dropdown instead of a div
+            const categorySelect = document.createElement('select');
+            categorySelect.className = 'category-select';
+            categorySelect.title = 'Select to change category';
+            
+            // Add a change event listener to the select
+            categorySelect.addEventListener('change', function(e) {
+                const newCategory = this.value;
+                const cardElement = this.closest('.image-card');
+                const imageId = cardElement.dataset.id;
+                
+                // Skip if selecting the current category (first option)
+                if (newCategory === data.category) {
+                    return;
+                }
+                
+                console.log("Moving image to category:", newCategory);
+                
+                // Find target container
+                const targetContainer = document.querySelector('.category-container[data-category="' + newCategory + '"] .category-images');
+                if (targetContainer) {
+                    // Move card to new category
+                    targetContainer.appendChild(cardElement);
+                    
+                    // Update data attribute
+                    cardElement.dataset.category = newCategory;
+                    
+                    // Update counts
+                    window.updateCategoryCounts();
+                    
+                    // Show notification
+                    const notification = document.getElementById('notification');
+                    notification.style.display = 'block';
+                    notification.textContent = "Moved \"" + imageId + "\" to " + newCategory;
+                    
+                    // Hide notification after 2 seconds
+                    setTimeout(function() {
+                        notification.style.display = 'none';
+                    }, 2000);
+                    
+                    // Rebuild the select options - will happen after DOM update
+                    setTimeout(function() {
+                        window.rebuildCategorySelects();
+                    }, 100);
+                }
+            });
+            
+            // Add current category as first option
+            const currentOption = document.createElement('option');
+            currentOption.value = data.category;
+            currentOption.textContent = data.category + " (Current)";
+            currentOption.selected = true;
+            categorySelect.appendChild(currentOption);
+            
+            // Add the select to the category div
+            categoryDiv.appendChild(categorySelect);
+            
+            // Create filename element
+            const filenameDiv = document.createElement('div');
+            filenameDiv.className = 'filename';
+            filenameDiv.textContent = data.filename;
+            
+            // Create description element
+            const descriptionDiv = document.createElement('div');
+            descriptionDiv.className = 'description';
+            descriptionDiv.textContent = data.description;
+            
+            // Add all elements to card content
+            cardContent.appendChild(categoryDiv);
+            cardContent.appendChild(filenameDiv);
+            cardContent.appendChild(descriptionDiv);
+            
+            // Add all main elements to card
+            card.appendChild(imageContainer);
+            card.appendChild(cardContent);
+            
+            return card;
+        }
+        
+        // Function to rebuild all category select dropdowns
+        window.rebuildCategorySelects = function() {
+            console.log("Rebuilding all category selects");
+            
+            // Gather all category names
+            const allCategories = [];
+            document.querySelectorAll('.category-container').forEach(container => {
+                const categoryName = container.dataset.category;
+                if (categoryName && !allCategories.includes(categoryName)) {
+                    allCategories.push(categoryName);
+                }
+            });
+            
+            // For each image card, update its select dropdown
+            document.querySelectorAll('.image-card').forEach(card => {
+                const currentCategory = card.dataset.category;
+                const select = card.querySelector('.category-select');
+                
+                if (select) {
+                    // Save the current selection
+                    const currentValue = select.value;
+                    
+                    // Clear existing options
+                    select.innerHTML = '';
+                    
+                    // Add current category as first option
+                    const currentOption = document.createElement('option');
+                    currentOption.value = currentCategory;
+                    currentOption.textContent = currentCategory + " (Current)";
+                    currentOption.selected = true;
+                    select.appendChild(currentOption);
+                    
+                    // Add all other categories
+                    allCategories.forEach(catName => {
+                        if (catName !== currentCategory) {
+                            const option = document.createElement('option');
+                            option.value = catName;
+                            option.textContent = catName;
+                            select.appendChild(option);
+                        }
+                    });
+                }
+            });
+        };
+        
+        // Function to sync category data with current DOM state
+        window.syncCategoryData = function() {
+            // This ensures our internal data structures match the DOM state
+            window.categoriesData = [];
+            document.querySelectorAll('.category-container').forEach(container => {
+                const categoryName = container.dataset.category;
+                const count = container.querySelector('.category-images').childElementCount;
+                if (categoryName) {
+                    window.categoriesData.push({
+                        name: categoryName,
+                        count: count
+                    });
+                }
+            });
+            
+            // Update window.cardData to match current category assignments
+            window.cardData = [];
+            document.querySelectorAll('.image-card').forEach(card => {
+                const filename = card.dataset.id;
+                const category = card.dataset.category;
+                const description = card.querySelector('.description')?.textContent || '';
+                const thumbnail = card.querySelector('.thumbnail')?.src || '';
+                
+                if (filename) {
+                    window.cardData.push({
+                        filename: filename,
+                        category: category,
+                        description: description,
+                        thumbnail: thumbnail,
+                        preview: thumbnail
+                    });
+                }
+            });
+            
+            console.log('Data synced with DOM');
+        };
+        
+        // Helper function to reattach category click handlers
+        window.reattachCategoryClickHandlers = function() {
+            console.log("Reattaching category click handlers");
+            document.querySelectorAll('.category').forEach(categoryElement => {
+                // Remove existing click handlers to avoid duplicates
+                const oldElement = categoryElement;
+                const newElement = oldElement.cloneNode(true);
+                oldElement.parentNode.replaceChild(newElement, oldElement);
+                
+                // Add new click handler
+                newElement.addEventListener('click', function(e) {
+                    console.log("Category element clicked");
+                    window.showCategoryOptions(this);
+                });
+            });
+        };
+        
+        // Initialize the data for our app
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const categoriesContainer = document.querySelector('.categories-container');
+                
+                // Create category containers from data
+                categoriesContainer.innerHTML = '';
+                
+                // Function to create a category container
+                function createCategoryContainer(categoryData) {
+                    const container = document.createElement('div');
+                    container.className = 'category-container';
+                    container.dataset.category = categoryData.name;
+                    
+                    const header = document.createElement('div');
+                    header.className = 'category-header';
+                    
+                    const title = document.createElement('h2');
+                    title.className = 'category-title';
+                    title.textContent = categoryData.name;
+                    
+                    const count = document.createElement('span');
+                    count.className = 'category-count';
+                    count.textContent = categoryData.count;
+                    
+                    const imagesContainer = document.createElement('div');
+                    imagesContainer.className = 'category-images';
+                    
+                    header.appendChild(title);
+                    header.appendChild(count);
+                    container.appendChild(header);
+                    container.appendChild(imagesContainer);
+                    
+                    return container;
+                }
+                
+                // Create all category containers
+                categoriesData.forEach(categoryData => {
+                    categoriesContainer.appendChild(createCategoryContainer(categoryData));
+                });
+                
+                // Populate category containers with cards
+                console.log("Building card elements...");
+                
+                // Add cards to their respective category containers
+                cardData.forEach(data => {
+                    // Find the category container for this card
+                    const categoryContainer = document.querySelector('.category-container[data-category="' + data.category + '"] .category-images');
+                    if (categoryContainer) {
+                        categoryContainer.appendChild(createCard(data));
+                    }
+                });
+                
+                console.log("Categories populated successfully");
+                
+                // Set up click events for image previews
+                document.querySelectorAll('.thumbnail').forEach(thumb => {
+                    thumb.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Show the preview overlay with this image source
+                        const imgSrc = this.src;
+                        const imgAlt = this.alt || 'Image preview';
+                        window.showPreview(imgSrc, imgAlt);
+                    });
+                });
+                
+                // Instead of messing with click handlers, just make sure all
+                // select dropdowns are properly populated
+                window.rebuildCategorySelects();
+                
+                // Close overlay when clicked
+                document.getElementById('preview-overlay').addEventListener('click', function() {
+                    this.style.display = 'none';
+                });
+                
+                // Script generation button
+                document.getElementById('generate-script').addEventListener('click', function() {
+                    generateMoveScript();
+                });
+                
+                // Close modal when clicking X
+                document.getElementById('close-modal').addEventListener('click', function() {
+                    document.getElementById('script-modal').style.display = 'none';
+                });
+                
+                // Close modal when clicking outside
+                window.addEventListener('click', function(event) {
+                    const modal = document.getElementById('script-modal');
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+                
+                // Copy script to clipboard
+                document.getElementById('copy-btn').addEventListener('click', function() {
+                    const scriptContent = document.getElementById('script-content');
+                    
+                    // Create a temporary textarea element to copy from
+                    const tempTextArea = document.createElement('textarea');
+                    tempTextArea.value = scriptContent.textContent;
+                    document.body.appendChild(tempTextArea);
+                    
+                    // Select and copy
+                    tempTextArea.select();
+                    document.execCommand('copy');
+                    
+                    // Remove the temporary element
+                    document.body.removeChild(tempTextArea);
+                    
+                    // Update button text temporarily
+                    const button = this;
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    button.style.backgroundColor = '#218838';
+                    
+                    // Reset after 2 seconds
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                        button.style.backgroundColor = '#28a745';
+                    }, 2000);
+                });
+                
+                // Initialize drag and drop
+                const containers = Array.from(document.querySelectorAll('.category-images'));
+                console.log('Found ' + containers.length + ' category containers');
+                
+                if (containers.length) {
+                    // Create the dragula instance with all containers
+                    window.drake = dragula(containers, {
+                        revertOnSpill: true,  /* Put the element back if drop target is invalid */
+                        copy: false,          /* Elements are moved, not copied */
+                        removeOnSpill: false  /* Don't remove elements when dropped outside of containers */
+                    });
+                    
+                    /* Handle when drag is complete */
+                    drake.on('drop', function(el, target, source) {
+                        if (target !== source) {
+                            const sourceCategory = source.parentElement.dataset.category;
+                            const targetCategory = target.parentElement.dataset.category;
+                            const imageId = el.dataset.id;
+                            
+                            console.log("Moving image " + imageId + " from " + sourceCategory + " to " + targetCategory);
+                            
+                            /* Update the category display in the card */
+                            const categoryElement = el.querySelector('.category');
+                            if (categoryElement && targetCategory) {
+                                /* Update the category text visibly */
+                                categoryElement.textContent = targetCategory;
+                                
+                                /* Recreate the dropdown div that was lost */
+                                const newDropdownDiv = document.createElement('div');
+                                newDropdownDiv.className = 'category-dropdown';
+                                categoryElement.appendChild(newDropdownDiv);
+                                
+                                /* Update data attribute on the element for consistency */
+                                el.dataset.category = targetCategory;
+                                
+                                /* Update the category counts and sync data structures */
+                                setTimeout(function() {
+                                    window.updateCategoryCounts();
+                                    window.syncCategoryData();
+                                    
+                                    // Make sure all categories have click handlers
+                                    window.reattachCategoryClickHandlers();
+                                }, 100);
+                                
+                                /* Show success notification */
+                                const notification = document.getElementById('notification');
+                                notification.style.display = 'block';
+                                notification.textContent = "Moved \"" + imageId + "\" to " + targetCategory;
+                                
+                                /* Hide notification after 2 seconds */
+                                setTimeout(function() {
+                                    notification.style.display = 'none';
+                                }, 2000);
+                            }
+                        }
+                    });
+                }
+                
+                // Update category counts and sync data initially
+                window.updateCategoryCounts();
+                window.syncCategoryData();
+                
+                // Initialize all the select dropdowns
+                window.rebuildCategorySelects();
+            } catch (error) {
+                console.error("Error initializing views:", error);
+            }
+        });
+        
+        // Function to show category dropdown options
+        window.showCategoryOptions = function(categoryElement) {
+            console.log("Category clicked:", categoryElement);
+            
+            // Get necessary elements
+            const dropdownElement = categoryElement.querySelector('.category-dropdown');
+            
+            // Get the current category text without the dropdown text
+            let currentCategory = categoryElement.textContent.trim();
+            // Handle case where dropdown items might be included in the text
+            if (dropdownElement) {
+                const clone = categoryElement.cloneNode(true);
+                const dropdown = clone.querySelector('.category-dropdown');
+                if (dropdown) {
+                    clone.removeChild(dropdown);
+                }
+                currentCategory = clone.textContent.trim();
+            }
+            
+            const cardElement = categoryElement.closest('.image-card');
+            const imageId = cardElement.dataset.id;
+            
+            console.log("Current category:", currentCategory);
+            console.log("Image ID:", imageId);
+            
+            // Clear existing dropdown items
+            if (dropdownElement) {
+                dropdownElement.innerHTML = '';
+            } else {
+                console.error("Dropdown element not found");
+                return;
+            }
+            
+            // Populate dropdown with all category options except current one
+            let categoriesAdded = 0;
+            document.querySelectorAll('.category-container').forEach(container => {
+                const categoryName = container.dataset.category;
+                if (categoryName && categoryName !== currentCategory) {
+                    const dropdownItem = document.createElement('div');
+                    dropdownItem.className = 'category-dropdown-item';
+                    dropdownItem.textContent = categoryName;
+                    
+                    dropdownItem.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent triggering parent click
+                        console.log("Clicked on category:", categoryName);
+                        
+                        // Get the source and target containers
+                        const sourceContainer = cardElement.parentElement;
+                        const targetContainer = document.querySelector('.category-container[data-category="' + categoryName + '"] .category-images');
+                        
+                        if (sourceContainer && targetContainer) {
+                            console.log("Moving card from", currentCategory, "to", categoryName);
+                            
+                            // Move the card to the new category
+                            targetContainer.appendChild(cardElement);
+                            
+                            // Update the category text (need to clear it first to avoid nesting)
+                            categoryElement.textContent = categoryName;
+                            
+                            // Recreate the dropdown div that was lost
+                            const newDropdownDiv = document.createElement('div');
+                            newDropdownDiv.className = 'category-dropdown';
+                            categoryElement.appendChild(newDropdownDiv);
+                            
+                            // Update data attribute
+                            cardElement.dataset.category = categoryName;
+                            
+                            // Update all counts and sync data
+                            window.updateCategoryCounts();
+                            window.syncCategoryData();
+                            
+                            // Reattach click handlers to all categories
+                            setTimeout(function() {
+                                window.reattachCategoryClickHandlers();
+                            }, 200);
+                            
+                            // Show notification
+                            const notification = document.getElementById('notification');
+                            notification.style.display = 'block';
+                            notification.textContent = "Moved \"" + imageId + "\" to " + categoryName;
+                            
+                            // Hide notification after 2 seconds
+                            setTimeout(function() {
+                                notification.style.display = 'none';
+                            }, 2000);
+                            
+                            // Hide the dropdown
+                            dropdownElement.style.display = 'none';
+                        } else {
+                            console.error("Source or target container not found");
+                        }
+                    });
+                    
+                    dropdownElement.appendChild(dropdownItem);
+                    categoriesAdded++;
+                }
+            });
+            
+            console.log("Added", categoriesAdded, "categories to dropdown");
+            
+            // Toggle dropdown visibility
+            if (dropdownElement.style.display === 'block') {
+                console.log("Hiding dropdown");
+                dropdownElement.style.display = 'none';
+            } else {
+                console.log("Showing dropdown");
+                dropdownElement.style.display = 'block';
+                
+                // Add a click event listener to document to close dropdown when clicking outside
+                setTimeout(() => {
+                    const closeDropdown = function(e) {
+                        if (!categoryElement.contains(e.target)) {
+                            dropdownElement.style.display = 'none';
+                            document.removeEventListener('click', closeDropdown);
+                        }
+                    };
+                    document.addEventListener('click', closeDropdown);
+                }, 0);
+            }
+        };
+        
+        // Function to generate the move script
+        function generateMoveScript() {
+            const scriptModal = document.getElementById('script-modal');
+            const scriptContent = document.getElementById('script-content');
+            
+            // Create script header
+            let script = "#!/bin/bash\n" +
+                "# Generated by Gemma3 Categorizer\n" +
+                "# This script will move files into their respective category directories\n" +
+                "# Run this script in the directory containing the images\n\n" +
+                "# Ensure we exit on error\n" +
+                "set -e\n\n" +
+                "echo \"Starting file organization...\"\n\n";
+            
+            // Function to sanitize filenames for shell and ensure proper escaping
+            function escapePath(path) {
+                if (!path) return '';
+                return path.replace(/'/g, "'\\''")
+            }
+            
+            // Get current category state from DOM, reflecting any moved images
+            let categoryFiles = {};
+            
+            // Force a count update to ensure everything is in sync
+            window.updateCategoryCounts();
+            
+            // Get files from their current location in the DOM
+            document.querySelectorAll('.category-container').forEach(container => {
+                const categoryName = container.dataset.category;
+                if (categoryName) {
+                    const filesInCategory = [];
+                    container.querySelectorAll('.image-card').forEach(card => {
+                        const filename = card.dataset.id;
+                        if (filename) {
+                            filesInCategory.push(filename);
+                        }
+                    });
+                    
+                    if (filesInCategory.length > 0) {
+                        categoryFiles[categoryName] = filesInCategory;
+                    }
+                }
+            });
+            
+            // Add mkdir commands
+            Object.keys(categoryFiles).forEach(category => {
+                const safeCategory = escapePath(category);
+                script += "# Create directory for " + category + "\n" +
+                          "mkdir -p '" + safeCategory + "'\n\n";
+            });
+            
+            // Add mv commands
+            Object.keys(categoryFiles).forEach(category => {
+                const safeCategory = escapePath(category);
+                script += "# Move files to " + category + " directory\n";
+                
+                categoryFiles[category].forEach(file => {
+                    const safeFile = escapePath(file);
+                    script += "mv -v '" + safeFile + "' '" + safeCategory + "/' || echo \"Failed to move " + safeFile + "\"\n";
+                });
+                
+                script += "\n";
+            });
+            
+            // Final message
+            script += "echo \"File organization complete!\"\n";
+            
+            // Update modal content
+            scriptContent.textContent = script;
+            
+            // Show the modal
+            scriptModal.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
