@@ -1,4 +1,4 @@
-# Gemma3 Categorizer - Guidelines for Claude
+# Image Categorizer - Guidelines for Claude
 
 ## Project Overview
 - Image categorization tool using Google's Gemma 3 model
@@ -28,3 +28,9 @@
 - Format: `black .`
 - Lint: `ruff check .`
 - Type check: `mypy .`
+
+
+## Git & Version Control
+- Do not perform git-related commands (add, commit, push, etc.) unless explicitly requested
+- Do not run linting or type checking
+- Always ask for confirmation before modifying version control
