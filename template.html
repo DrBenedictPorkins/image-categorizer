@@ -236,8 +236,17 @@
             z-index: 999;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
         }
+        
+        .preview-content {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 90%;
+            height: 90%;
+        }
+        
         .fullsize-preview {
             max-width: 70vw;  /* Reduced from 90vw */
             max-height: 70vh; /* Reduced from 90vh */
@@ -245,6 +254,64 @@
             border: 5px solid white;
             background-color: white;
             object-fit: contain; /* Maintain aspect ratio */
+            z-index: 1001;
+        }
+        
+        .preview-nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            z-index: 1002;
+            opacity: 0.6;
+            text-shadow: 0 0 3px rgba(0,0,0,0.8);
+        }
+        
+        .preview-nav-arrow:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+            opacity: 1;
+        }
+        
+        .preview-nav-left {
+            left: 20px;
+        }
+        
+        .preview-nav-right {
+            right: 20px;
+        }
+        
+        .preview-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            z-index: 1002;
+            opacity: 0.6;
+        }
+        
+        .preview-close:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+            opacity: 1;
         }
         .card-content {
             padding: 15px;
@@ -819,7 +886,12 @@
     
     <!-- Preview overlay for full-size images -->
     <div id="preview-overlay" class="preview-overlay">
-        <img id="preview-image" class="fullsize-preview">
+        <div class="preview-content">
+            <div id="preview-nav-left" class="preview-nav-arrow preview-nav-left">←</div>
+            <img id="preview-image" class="fullsize-preview">
+            <div id="preview-nav-right" class="preview-nav-arrow preview-nav-right">→</div>
+            <div id="preview-close" class="preview-close">✕</div>
+        </div>
     </div>
     
     <!-- Notification for user feedback -->
@@ -903,15 +975,129 @@
         // Call this immediately
         ensureTrashCategoryExists();
         
-        // Function to show the overlay with the clicked image
-        window.showPreview = function(imageUrl, alt) {
+        // Function to show the overlay with the clicked image and enable navigation
+        window.showPreview = function(imageUrl, alt, imageCard) {
             const overlay = document.getElementById('preview-overlay');
             const previewImg = document.getElementById('preview-image');
+            const navLeft = document.getElementById('preview-nav-left');
+            const navRight = document.getElementById('preview-nav-right');
+            const closeBtn = document.getElementById('preview-close');
             
+            // Store current image card for navigation
+            window.currentPreviewCard = imageCard || event.target.closest('.image-card');
+            
+            // Set the image
             previewImg.src = imageUrl;
             previewImg.alt = alt || 'Full size preview';
             
+            // Show the overlay
             overlay.style.display = 'flex';
+            
+            // Update navigation arrows visibility
+            updatePreviewNavigationControls();
+            
+            // Set up event listeners for navigation
+            navLeft.onclick = function(e) {
+                e.stopPropagation();
+                navigatePreview('prev');
+            };
+            
+            navRight.onclick = function(e) {
+                e.stopPropagation();
+                navigatePreview('next');
+            };
+            
+            // Close button handler
+            closeBtn.onclick = function(e) {
+                e.stopPropagation();
+                overlay.style.display = 'none';
+            };
+            
+            // Add keyboard navigation
+            overlay.onkeydown = handlePreviewKeydown;
+            
+            // Focus the overlay to capture keyboard events
+            overlay.tabIndex = 0;
+            overlay.focus();
+        }
+        
+        // Function to update navigation controls visibility based on current image position
+        function updatePreviewNavigationControls() {
+            if (!window.currentPreviewCard) return;
+            
+            const navLeft = document.getElementById('preview-nav-left');
+            const navRight = document.getElementById('preview-nav-right');
+            
+            // Get the category and all images in that category
+            const category = window.currentPreviewCard.dataset.category;
+            const categoryContainer = document.querySelector(`.category-container[data-category="${category}"]`);
+            
+            if (categoryContainer) {
+                const allImagesInCategory = Array.from(categoryContainer.querySelectorAll('.image-card'));
+                const currentIndex = allImagesInCategory.indexOf(window.currentPreviewCard);
+                
+                // Show/hide left arrow
+                navLeft.style.display = currentIndex > 0 ? 'flex' : 'none';
+                
+                // Show/hide right arrow
+                navRight.style.display = currentIndex < allImagesInCategory.length - 1 ? 'flex' : 'none';
+            }
+        }
+        
+        // Function to navigate to the previous or next image in the same category
+        function navigatePreview(direction) {
+            if (!window.currentPreviewCard) return;
+            
+            const category = window.currentPreviewCard.dataset.category;
+            const categoryContainer = document.querySelector(`.category-container[data-category="${category}"]`);
+            
+            if (categoryContainer) {
+                const allImagesInCategory = Array.from(categoryContainer.querySelectorAll('.image-card'));
+                const currentIndex = allImagesInCategory.indexOf(window.currentPreviewCard);
+                
+                let newIndex;
+                if (direction === 'prev' && currentIndex > 0) {
+                    newIndex = currentIndex - 1;
+                } else if (direction === 'next' && currentIndex < allImagesInCategory.length - 1) {
+                    newIndex = currentIndex + 1;
+                } else {
+                    return; // No valid navigation
+                }
+                
+                const newCard = allImagesInCategory[newIndex];
+                const thumbnail = newCard.querySelector('.thumbnail');
+                
+                if (thumbnail) {
+                    // Update the current preview card
+                    window.currentPreviewCard = newCard;
+                    
+                    // Update the image
+                    const previewImg = document.getElementById('preview-image');
+                    previewImg.src = thumbnail.src;
+                    previewImg.alt = thumbnail.alt;
+                    
+                    // Update navigation controls
+                    updatePreviewNavigationControls();
+                }
+            }
+        }
+        
+        // Handle keyboard navigation in preview mode
+        function handlePreviewKeydown(e) {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    navigatePreview('prev');
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    navigatePreview('next');
+                    e.preventDefault();
+                    break;
+                case 'Escape':
+                    document.getElementById('preview-overlay').style.display = 'none';
+                    e.preventDefault();
+                    break;
+            }
         }
         
         // Define updateCategoryCounts function globally before it's used
@@ -1012,7 +1198,7 @@
                 thumbnail.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.showPreview(this.src, this.alt);
+                    window.showPreview(this.src, this.alt, card);
                 });
                 
                 imageContainer.appendChild(thumbnail);
@@ -1467,9 +1653,17 @@
                 // select dropdowns are properly populated
                 window.rebuildCategorySelects();
                 
-                // Close overlay when clicked
-                document.getElementById('preview-overlay').addEventListener('click', function() {
-                    this.style.display = 'none';
+                // Close overlay only when background is clicked, not elements inside
+                document.getElementById('preview-overlay').addEventListener('click', function(e) {
+                    // Only close if the click is directly on the overlay background (not on child elements)
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+                
+                // Prevent clicks on the preview image from closing the overlay
+                document.getElementById('preview-image').addEventListener('click', function(e) {
+                    e.stopPropagation();
                 });
                 
                 // Script generation button
