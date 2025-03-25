@@ -31,39 +31,74 @@ def categorize_images_with_llm(image_descriptions: List[Dict[str, str]]) -> List
     """
     print(f"Categorizing {len(image_descriptions)} images with LLM...")
     
-    # Format descriptions for the prompt
-    descriptions_text = "\n".join([f"Image {i+1}: {item['filename']} - {item['description']}" 
+    # Format descriptions for the prompt - use a numeric ID instead of filename to prevent bias
+    descriptions_text = "\n".join([f"Image {i+1}: {item['description']}" 
                                  for i, item in enumerate(image_descriptions)])
     
-    # System prompt requesting simple categorization
+    # Create a mapping from image number to filename for later use
+    image_number_to_filename = {f"Image {i+1}": item['filename'] for i, item in enumerate(image_descriptions)}
+    
+    # Log what's being sent to the LLM for debugging
+    print("\n=== DESCRIPTIONS SENT TO LLM FOR CATEGORIZATION ===")
+    print(descriptions_text[:1000] + "..." if len(descriptions_text) > 1000 else descriptions_text)
+    print("=== END OF DESCRIPTIONS SAMPLE ===\n")
+    
+    # System prompt requesting simple categorization based ONLY on descriptions
     system_prompt = """You are an AI expert in image categorization.
     Your task is to analyze image descriptions and assign a concise category to each image.
     
     Rules for categories:
-    - Each category should be a single word or very short phrase (1-3 words max)
-    - Focus on the primary subject of each image, based on the description
-    - Avoid overly specific or overly general categories
-    - Be consistent with similar images
-    - Use commonly understood terms
+    - Use 1-3 word categories that are specific but not overly detailed
+    - CONSOLIDATE similar images into the same categories - be conservative with category creation
+    - Aim for 5-8 total categories, not dozens of unique categories
+    - Avoid using "Screenshots" as a category unless the content is clearly a computer interface
+    - Focus on the SUBJECT MATTER in the image, not how it was taken (avoid categories like "Closeup")
+    - Make categories broad enough to group multiple similar images
+    - Prefer general categories that could each contain 4+ images
+    - Use plain language folder-style names without fancy descriptions or punctuation
+    
+    CRITICALLY IMPORTANT:
+    - Base your categorization SOLELY on the image descriptions
+    - DO NOT use image numbers or IDs as a shortcut
+    - DO NOT consider the image number in your decision making
+    - DO NOT use generic terms like "Screenshot" just because they appear in descriptions
+    - FOCUS on the CONTENT of the images, not the type/format of the image
     
     IMPORTANT: You MUST return ONLY a valid JSON object with no additional text. The JSON format must be:
     {
-      "filename1.jpg": "category1",
-      "filename2.jpg": "category2",
+      "Image 1": "Category",
+      "Image 2": "Category",
       ...
     }
     
-    Where each key is the image filename and each value is the category label.
+    Where each key is the image number (e.g., "Image 1") and each value is the category label.
     """
+    
+    # Log the system prompt for debugging
+    print("\n=== SYSTEM PROMPT FOR CATEGORIZATION ===")
+    print(system_prompt)
+    print("=== END OF SYSTEM PROMPT ===\n")
     
     user_prompt = f"""Here are descriptions of {len(image_descriptions)} images:
 
 {descriptions_text}
 
-Analyze these descriptions and assign a category to each image.
+Analyze ONLY these descriptions (ignore the image numbers) and assign a category to each image.
 
-IMPORTANT: YOUR ENTIRE RESPONSE MUST BE ONLY VALID JSON MAPPING FILENAMES TO CATEGORIES.
-Do not include anything else besides the JSON."""
+IMPORTANT: 
+1. Base your decisions SOLELY on the image descriptions, not the image numbers
+2. FOCUS on the CONTENT/SUBJECT of the images, not how they were captured
+3. If the description mentions "screenshot" but describes other content, categorize based on that content
+4. YOUR ENTIRE RESPONSE MUST BE ONLY VALID JSON with image numbers as keys and categories as values
+5. The response must start with {{ and end with }}
+6. Do not include any explanations, markdown formatting, or anything else
+7. JUST RETURN THE JSON OBJECT, NOTHING ELSE."""
+
+    # Log the user prompt for debugging (limiting the display of the long descriptions part)
+    print("\n=== USER PROMPT FOR CATEGORIZATION (abbreviated) ===")
+    abbreviated_user_prompt = user_prompt.replace(descriptions_text, "[...descriptions omitted for brevity...]")
+    print(abbreviated_user_prompt)
+    print("=== END OF USER PROMPT ===\n")
     
     categories_dict = {}
     
@@ -80,7 +115,7 @@ Do not include anything else besides the JSON."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=1000,
+                max_tokens=2000,  # Increased token limit to handle larger responses
                 temperature=0.1  # Very low temperature for consistent, structured JSON output
             )
             
@@ -104,20 +139,131 @@ Do not include anything else besides the JSON."""
                     
                     if json_start >= 0 and json_end > json_start:
                         json_content = content[json_start:json_end]
-                        categories_dict = json.loads(json_content)
-                        print(f"Successfully extracted and parsed JSON from OpenAI")
+                        try:
+                            # Try parsing the extracted JSON
+                            categories_dict = json.loads(json_content)
+                            print(f"Successfully extracted and parsed JSON from OpenAI")
+                        except json.JSONDecodeError as extract_error:
+                            # If there's still an error, check if it's due to a truncated response
+                            if "Unterminated string" in str(extract_error) or "Expecting" in str(extract_error):
+                                print("Detected truncated JSON response, attempting to fix...")
+                                # Try to auto-complete truncated JSON
+                                if content.count('{') > content.count('}'):
+                                    # Missing closing braces
+                                    fixed_content = content + "}" * (content.count('{') - content.count('}'))
+                                    try:
+                                        categories_dict = json.loads(fixed_content)
+                                        print("Successfully fixed and parsed truncated JSON")
+                                    except:
+                                        print("Could not fix truncated JSON automatically")
+                                elif '"' in content and content.count('"') % 2 != 0:
+                                    # Has unclosed quote
+                                    if content.rstrip().endswith('"'):
+                                        # Quote at the end, just add closing brace
+                                        fixed_content = content + "}"
+                                        try:
+                                            categories_dict = json.loads(fixed_content)
+                                            print("Successfully fixed and parsed truncated JSON with unclosed quotes")
+                                        except:
+                                            print("Could not fix truncated JSON with unclosed quotes")
+                            
+                            # If auto-fixing failed, try to request a completion from the model
+                            if not categories_dict:
+                                print("Trying to get completion for truncated JSON...")
+                                
+                                # Create a truncated JSON completion prompt
+                                truncated_json = content
+                                completion_prompt = f"""
+The following JSON is truncated:
+
+{truncated_json}
+
+Please provide a properly formatted and complete version of this JSON. The response should be valid JSON only.
+"""
+                                
+                                # Request completion
+                                try:
+                                    completion_response = client.chat.completions.create(
+                                        model="gpt-3.5-turbo",
+                                        messages=[
+                                            {"role": "user", "content": completion_prompt}
+                                        ],
+                                        max_tokens=2000,
+                                        temperature=0.1
+                                    )
+                                    
+                                    completion_content = completion_response.choices[0].message.content.strip()
+                                    
+                                    # Try to extract valid JSON from the completion
+                                    json_start = completion_content.find('{')
+                                    json_end = completion_content.rfind('}') + 1
+                                    
+                                    if json_start >= 0 and json_end > json_start:
+                                        json_content = completion_content[json_start:json_end]
+                                        try:
+                                            categories_dict = json.loads(json_content)
+                                            print("Successfully completed and parsed truncated JSON")
+                                        except:
+                                            print("Could not parse JSON completion")
+                                except Exception as completion_error:
+                                    print(f"Error getting JSON completion: {completion_error}")
                     else:
-                        print("No valid JSON found in OpenAI response")
+                        print("No valid JSON found in OpenAI response, retrying with a clearer prompt")
+                        
+                        # Create a more explicit prompt
+                        retry_prompt = """You previously returned a response that was not valid JSON. 
+                        
+Your task is to create a valid JSON object that contains all image filenames as keys and their corresponding category labels as values.
+
+IMPORTANT: Make sure you include ALL images from the original list, not just a subset!
+
+YOUR ENTIRE RESPONSE MUST BE A VALID JSON OBJECT THAT STARTS WITH { AND ENDS WITH }.
+DO NOT USE MARKDOWN FORMATTING. DO NOT ADD ANY EXPLANATIONS.
+RETURN ONLY THE COMPLETE JSON OBJECT, NOTHING ELSE."""
+                        
+                        retry_response = client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt},
+                                {"role": "assistant", "content": content},
+                                {"role": "user", "content": retry_prompt}
+                            ],
+                            max_tokens=1000,
+                            temperature=0.1  # Very low temperature for consistent, structured JSON output
+                        )
+                        
+                        retry_content = retry_response.choices[0].message.content.strip()
+                        print(f"Raw response from OpenAI API retry: {retry_content}")
+                        
+                        try:
+                            # Parse retry response
+                            categories_dict = json.loads(retry_content)
+                            print(f"Successfully parsed JSON from retry response")
+                        except json.JSONDecodeError as retry_error:
+                            # Try to extract JSON one more time
+                            json_start = retry_content.find('{')
+                            json_end = retry_content.rfind('}') + 1
+                            
+                            if json_start >= 0 and json_end > json_start:
+                                json_content = retry_content[json_start:json_end]
+                                try:
+                                    categories_dict = json.loads(json_content)
+                                    print(f"Successfully extracted and parsed JSON from retry response")
+                                except:
+                                    print("Failed to extract JSON from retry response")
+                            else:
+                                print("No valid JSON found in retry response")
                 except Exception as e:
                     print(f"Failed to extract JSON from OpenAI: {e}")
         except Exception as e:
             print(f"Error getting response from OpenAI: {e}")
-            # Fall through to Mistral
+            # Fall through to Llama-2
     
-    # Use Mistral model if OpenAI not available or failed
+    # Use Llama-2 model if OpenAI not available or failed
     if not categories_dict:
         try:
-            print("Using Mistral-7B for image categorization...")
+            print("Using Llama-2-7b for image categorization...")
             
             # Check for Hugging Face token and login if available
             hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
@@ -128,7 +274,7 @@ Do not include anything else besides the JSON."""
                 print("No Hugging Face token found. If the model requires authentication, this will fail.")
                 print("Set the HF_TOKEN or HUGGINGFACE_TOKEN environment variable to access gated models.")
                 
-            # Determine device for Mistral model
+            # Determine device for Llama model
             device = "cpu"
             if torch.cuda.is_available():
                 device = "cuda"
@@ -136,35 +282,52 @@ Do not include anything else besides the JSON."""
                 device = "mps"
             
             # Create pipeline for text generation
-            mistral_pipe = pipeline(
+            llama_pipe = pipeline(
                 "text-generation",
-                model="mistralai/Mistral-7B-v0.1",
-                device=device
+                model="meta-llama/Llama-2-7b-chat-hf",
+                device=device,
+                torch_dtype=torch.float16 if device == "cuda" else torch.float32  # Use float16 for GPU to save memory
             )
             
-            # Combine prompts for Mistral
-            combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+            # Format prompt for Llama-2 chat model (requires specific formatting)
+            llama_prompt = f"""<s>[INST] <<SYS>>
+{system_prompt}
+<</SYS>>
+
+{user_prompt} [/INST]"""
             
-            response = mistral_pipe(
-                combined_prompt,
+            # Generate response with Llama
+            response = llama_pipe(
+                llama_prompt,
                 max_new_tokens=1000,
                 temperature=0.1,  # Very low temperature for consistent output
-                do_sample=True
+                do_sample=True,
+                top_p=0.9,
+                repetition_penalty=1.2  # Add slight repetition penalty to avoid getting stuck
             )
             
             # Extract the generated text
             content = response[0]["generated_text"]
-            # Extract just the response after the prompt
-            content = content[len(combined_prompt):].strip()
+            # Extract just the response after the prompt for Llama-2
+            # Look for content after the instruction closing tag [/INST]
+            inst_end = content.find("[/INST]")
+            if inst_end > 0:
+                content = content[inst_end + 7:].strip()
+            else:
+                # Fallback in case the format changes
+                content = content[len(llama_prompt):].strip()
             
-            print(f"Raw response from Mistral: {content}")
+            print(f"Raw response from Llama-2: {content}")
             
             try:
                 # Direct JSON parsing with strict validation
                 categories_dict = json.loads(content)
-                print(f"Successfully parsed JSON response from Mistral")
+                print(f"Successfully parsed JSON response from Llama-2")
+                # Log a few of the categories for debugging
+                sample_categories = dict(list(categories_dict.items())[:5])
+                print(f"Sample categories: {sample_categories}")
             except json.JSONDecodeError as e:
-                print(f"Error parsing JSON from Mistral: {e}")
+                print(f"Error parsing JSON from Llama-2: {e}")
                 
                 # Attempt to extract JSON from text if there's non-JSON content
                 try:
@@ -175,16 +338,79 @@ Do not include anything else besides the JSON."""
                     if json_start >= 0 and json_end > json_start:
                         json_content = content[json_start:json_end]
                         categories_dict = json.loads(json_content)
-                        print(f"Successfully extracted and parsed JSON from Mistral")
+                        print(f"Successfully extracted and parsed JSON from Llama-2")
                     else:
-                        print("No valid JSON found in Mistral response")
+                        print("No valid JSON found in Llama-2 response, retrying with a clearer prompt")
+                        
+                        # Create a more explicit prompt for retry
+                        retry_prompt = """You previously returned a response that was not valid JSON. 
+                        
+Your task is simply to convert the image descriptions to categories.
+
+YOUR ENTIRE RESPONSE MUST BE A VALID JSON OBJECT THAT STARTS WITH { AND ENDS WITH }.
+DO NOT USE MARKDOWN FORMATTING. DO NOT ADD ANY EXPLANATIONS.
+RETURN ONLY THE JSON, NOTHING ELSE."""
+                        
+                        retry_llama_prompt = f"{llama_prompt}\n\n{content}\n\n{retry_prompt}"
+                        
+                        retry_response = llama_pipe(
+                            retry_llama_prompt,
+                            max_new_tokens=1000,
+                            temperature=0.05,  # Even lower temperature for the retry
+                            do_sample=True,
+                            top_p=0.9,
+                            repetition_penalty=1.2
+                        )
+                        
+                        # Extract the retry response
+                        retry_content = retry_response[0]["generated_text"]
+                        # Extract just the response after the prompt for Llama-2
+                        # Look for content after the instruction closing tag [/INST]
+                        inst_end = retry_content.find("[/INST]")
+                        if inst_end > 0:
+                            retry_content = retry_content[inst_end + 7:].strip()
+                        else:
+                            # Fallback in case the format changes
+                            retry_content = retry_content[len(retry_llama_prompt):].strip()
+                        
+                        print(f"Raw response from Llama-2 retry: {retry_content}")
+                        
+                        try:
+                            # Parse retry response
+                            categories_dict = json.loads(retry_content)
+                            print(f"Successfully parsed JSON from Llama-2 retry response")
+                        except json.JSONDecodeError as retry_error:
+                            # Try to extract JSON one more time
+                            json_start = retry_content.find('{')
+                            json_end = retry_content.rfind('}') + 1
+                            
+                            if json_start >= 0 and json_end > json_start:
+                                json_content = retry_content[json_start:json_end]
+                                try:
+                                    categories_dict = json.loads(json_content)
+                                    print(f"Successfully extracted and parsed JSON from Llama-2 retry response")
+                                except:
+                                    print("Failed to extract JSON from Llama-2 retry response")
+                            else:
+                                print("No valid JSON found in Llama-2 retry response")
                 except Exception as e:
-                    print(f"Failed to extract JSON from Mistral: {e}")
+                    print(f"Failed to extract JSON from Llama-2: {e}")
         except Exception as e:
-            print(f"Error getting response from Mistral: {e}")
+            print(f"Error getting response from Llama-2: {e}")
     
     # Apply categories to the images from the categories_dict
     if categories_dict:
+        # For response format using image numbers, convert to filename
+        if all(key.startswith("Image ") for key in list(categories_dict.keys())[:5]):
+            # Convert from image numbers back to filenames
+            filename_categories = {}
+            for image_number, category in categories_dict.items():
+                if image_number in image_number_to_filename:
+                    filename = image_number_to_filename[image_number]
+                    filename_categories[filename] = category
+            categories_dict = filename_categories
+        
+        # Now apply categories to images
         for item in image_descriptions:
             filename = item['filename']
             if filename in categories_dict:
@@ -250,17 +476,18 @@ def _deprecated_get_group_categories(image_descriptions: List[Dict[str, str]]) -
     where these images could be organized. Then assign each image to exactly one category.
     
     Rules:
-    - Try to use between 2-5 categories, even for small sets of images
-    - Categories should be 1-3 words, using only letters, numbers, and underscores (no spaces)
-    - Use commonly understood terms that would make sense as directory names
-    - Group similar images together into logical categories
-    - Avoid overly specific or overly general categories
+    - Strictly use ONLY 3-5 categories total, even for large sets of images
+    - Keep category names short (1-3 words max) and use conventional folder-style names
+    - Use simple, intuitive terms like "Screenshots", "Diagrams", "Social Media", etc.
+    - Group many similar images together - aim for at least 4+ images per category
+    - Avoid creating specialized categories for just 1-2 images
+    - Prioritize usability over specificity - folders should be easy to navigate
     - Every image must be assigned to exactly one category
     
     IMPORTANT: You MUST return ONLY a valid JSON object with no additional text. The JSON format must be:
     {
-      "category_name1": ["image1.jpg", "image2.jpg"],
-      "category_name2": ["image3.jpg", "image4.jpg"],
+      "Category1": ["image1.jpg", "image2.jpg"],
+      "Category2": ["image3.jpg", "image4.jpg"],
       ...
     }
     
@@ -281,7 +508,9 @@ IMPORTANT: YOUR ENTIRE RESPONSE MUST BE ONLY VALID JSON IN THIS FORMAT:
   ...
 }}
 
-Do not include anything else besides the JSON."""
+The response must start with {{ and end with }}.
+DO NOT include ANY explanations, markdown formatting, or anything else.
+JUST RETURN THE JSON OBJECT, NOTHING ELSE."""
 
     content = None
     categories_dict = None
@@ -313,18 +542,77 @@ Do not include anything else besides the JSON."""
                 print(f"Successfully parsed JSON with {len(categories_dict)} categories")
             except json.JSONDecodeError as e:
                 print(f"Error parsing JSON from OpenAI: {e}")
-                content = None
-                categories_dict = None
+                
+                # Try to extract JSON from the response
+                json_start = content.find('{')
+                json_end = content.rfind('}') + 1
+                
+                if json_start >= 0 and json_end > json_start:
+                    json_content = content[json_start:json_end]
+                    try:
+                        categories_dict = json.loads(json_content)
+                        print(f"Successfully extracted and parsed JSON with {len(categories_dict)} categories")
+                    except:
+                        print("Failed to extract JSON")
+                else:
+                    print("No valid JSON found in OpenAI response, retrying with a clearer prompt")
+                    
+                    # Create a more explicit prompt
+                    retry_prompt = """You previously returned a response that was not valid JSON. 
+                    
+Your task is simply to organize images into logical categories.
+
+YOUR ENTIRE RESPONSE MUST BE A VALID JSON OBJECT THAT STARTS WITH { AND ENDS WITH }.
+DO NOT USE MARKDOWN FORMATTING. DO NOT ADD ANY EXPLANATIONS.
+RETURN ONLY THE JSON, NOTHING ELSE."""
+                    
+                    retry_response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                            {"role": "assistant", "content": content},
+                            {"role": "user", "content": retry_prompt}
+                        ],
+                        max_tokens=1000,
+                        temperature=0.1  # Very low temperature for consistent, structured JSON output
+                    )
+                    
+                    retry_content = retry_response.choices[0].message.content.strip()
+                    print(f"Raw response from OpenAI API retry: {retry_content}")
+                    
+                    try:
+                        # Parse retry response
+                        categories_dict = json.loads(retry_content)
+                        print(f"Successfully parsed JSON from retry response with {len(categories_dict)} categories")
+                    except json.JSONDecodeError as retry_error:
+                        # Try to extract JSON one more time
+                        json_start = retry_content.find('{')
+                        json_end = retry_content.rfind('}') + 1
+                        
+                        if json_start >= 0 and json_end > json_start:
+                            json_content = retry_content[json_start:json_end]
+                            try:
+                                categories_dict = json.loads(json_content)
+                                print(f"Successfully extracted and parsed JSON from retry response with {len(categories_dict)} categories")
+                            except:
+                                print("Failed to extract JSON from retry response")
+                                content = None
+                                categories_dict = None
+                        else:
+                            print("No valid JSON found in retry response")
+                            content = None
+                            categories_dict = None
         except Exception as e:
             print(f"Error getting group categories from OpenAI: {e}")
             content = None
             categories_dict = None
     else:
-        # Use Mistral model if OpenAI not available
+        # Use Llama-2 model if OpenAI not available
         try:
-            print("Using Mistral-7B for group categorization...")
+            print("Using Llama-2-7B for group categorization...")
             
-            # Determine device for Mistral model
+            # Determine device for Llama-2 model
             device = "cpu"
             if torch.cuda.is_available():
                 device = "cuda"
@@ -332,17 +620,17 @@ Do not include anything else besides the JSON."""
                 device = "mps"
             
             # Create pipeline for text generation
-            mistral_pipe = pipeline(
+            llama_pipe = pipeline(
                 "text-generation",
-                model="mistralai/Mistral-7B-v0.1",
+                model="mistralai/Llama-2-7B-v0.1",
                 device=device
             )
             
-            # Combine prompts for Mistral
-            combined_prompt = f"{system_prompt}\n\n{user_prompt}"
+            # Combine prompts for Llama-2
+            llama_prompt = f"{system_prompt}\n\n{user_prompt}"
             
-            response = mistral_pipe(
-                combined_prompt,
+            response = llama_pipe(
+                llama_prompt,
                 max_new_tokens=1000,
                 temperature=0.3,
                 do_sample=True
@@ -350,17 +638,23 @@ Do not include anything else besides the JSON."""
             
             # Extract the generated text
             content = response[0]["generated_text"]
-            # Extract just the response after the prompt
-            content = content[len(combined_prompt):].strip()
+            # Extract just the response after the prompt for Llama-2
+            # Look for content after the instruction closing tag [/INST]
+            inst_end = content.find("[/INST]")
+            if inst_end > 0:
+                content = content[inst_end + 7:].strip()
+            else:
+                # Fallback in case the format changes
+                content = content[len(llama_prompt):].strip()
             
-            print(f"Raw response from Mistral: {content}")
+            print(f"Raw response from Llama-2: {content}")
             
             try:
                 # Try to parse the response directly as JSON
                 categories_dict = json.loads(content)
                 print(f"Successfully parsed JSON with {len(categories_dict)} categories")
             except json.JSONDecodeError as e:
-                print(f"Error parsing JSON from Mistral: {e}")
+                print(f"Error parsing JSON from Llama-2: {e}")
                 
                 # Attempt to extract JSON from text if there's non-JSON content
                 try:
@@ -373,19 +667,73 @@ Do not include anything else besides the JSON."""
                         categories_dict = json.loads(json_content)
                         print(f"Successfully extracted and parsed JSON with {len(categories_dict)} categories")
                     else:
-                        print("No valid JSON found in Mistral response")
-                        content = None
-                        categories_dict = None
+                        print("No valid JSON found in Llama-2 response, retrying with a clearer prompt")
+                        
+                        # Create a more explicit prompt for retry
+                        retry_prompt = """You previously returned a response that was not valid JSON. 
+                        
+Your task is simply to organize images into logical categories.
+
+YOUR ENTIRE RESPONSE MUST BE A VALID JSON OBJECT THAT STARTS WITH { AND ENDS WITH }.
+DO NOT USE MARKDOWN FORMATTING. DO NOT ADD ANY EXPLANATIONS.
+RETURN ONLY THE JSON, NOTHING ELSE."""
+                        
+                        retry_llama_prompt = f"{llama_prompt}\n\n{content}\n\n{retry_prompt}"
+                        
+                        retry_response = llama_pipe(
+                            retry_llama_prompt,
+                            max_new_tokens=1000,
+                            temperature=0.05,  # Even lower temperature for the retry
+                            do_sample=True,
+                            top_p=0.9,
+                            repetition_penalty=1.2
+                        )
+                        
+                        # Extract the retry response
+                        retry_content = retry_response[0]["generated_text"]
+                        # Extract just the response after the prompt for Llama-2
+                        # Look for content after the instruction closing tag [/INST]
+                        inst_end = retry_content.find("[/INST]")
+                        if inst_end > 0:
+                            retry_content = retry_content[inst_end + 7:].strip()
+                        else:
+                            # Fallback in case the format changes
+                            retry_content = retry_content[len(retry_llama_prompt):].strip()
+                        
+                        print(f"Raw response from Llama-2 retry: {retry_content}")
+                        
+                        try:
+                            # Parse retry response
+                            categories_dict = json.loads(retry_content)
+                            print(f"Successfully parsed JSON from Llama-2 retry response with {len(categories_dict)} categories")
+                        except json.JSONDecodeError as retry_error:
+                            # Try to extract JSON one more time
+                            json_start = retry_content.find('{')
+                            json_end = retry_content.rfind('}') + 1
+                            
+                            if json_start >= 0 and json_end > json_start:
+                                json_content = retry_content[json_start:json_end]
+                                try:
+                                    categories_dict = json.loads(json_content)
+                                    print(f"Successfully extracted and parsed JSON from Llama-2 retry response with {len(categories_dict)} categories")
+                                except:
+                                    print("Failed to extract JSON from Llama-2 retry response")
+                                    content = None
+                                    categories_dict = None
+                            else:
+                                print("No valid JSON found in Llama-2 retry response")
+                                content = None
+                                categories_dict = None
                 except Exception as e:
-                    print(f"Failed to extract JSON from Mistral: {e}")
+                    print(f"Failed to extract JSON from Llama-2: {e}")
                     content = None
                     categories_dict = None
         except Exception as e:
-            print(f"Error getting group categories from Mistral: {e}")
+            print(f"Error getting group categories from Llama-2: {e}")
             content = None
             categories_dict = None
     
-    # If we didn't get valid JSON from OpenAI or Mistral API responses directly,
+    # If we didn't get valid JSON from OpenAI or Llama-2 API responses directly,
     # try one more extraction from content as a fallback
     if content and not categories_dict:
         try:
@@ -550,7 +898,12 @@ def generate_html_report(directory: str, results: List[Tuple[str, str, str]],
     if group_categories:
         category_stats = []
         for category, files in group_categories.items():
-            category_stats.append((category, len(files)))
+            # Truncate category name if it's too long (for UI purposes)
+            display_category = category
+            if len(category) > 30:
+                display_category = category[:27] + "..."
+                
+            category_stats.append((display_category, len(files)))
             
         # Ensure Trash category exists in the list
         if not any(category == 'Trash' for category, _ in category_stats):
@@ -646,15 +999,15 @@ def main(directory: str) -> None:
     if os.environ.get("OPENAI_API_KEY"):
         print("Using OpenAI API for categorization (OPENAI_API_KEY found)")
     else:
-        print("OPENAI_API_KEY not found. Will use Mistral-7B model for categorization")
+        print("OPENAI_API_KEY not found. Will use Llama-2-7B model for categorization")
         
-    # Check for Hugging Face token and login if available (needed for Mistral model)
+    # Check for Hugging Face token and login if available (needed for Llama-2 model)
     hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
     if hf_token:
         print("Authenticating with Hugging Face...")
         hf_login(token=hf_token)
     else:
-        print("No Hugging Face token found. If using Mistral model requires authentication, this may fail.")
+        print("No Hugging Face token found. If using Llama-2 model requires authentication, this may fail.")
         print("Set the HF_TOKEN or HUGGINGFACE_TOKEN environment variable if needed.")
     
     # Load the BLIP image captioning model
