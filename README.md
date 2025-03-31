@@ -9,6 +9,10 @@ An intelligent image categorization tool using AI for automatic image organizati
 
 ## TL;DR - Quick Start
 
+This tool uses:
+- Local Salesforce BLIP model (downloaded automatically) to analyze and describe images
+- Remote LLM (ANTHROPIC or OPENAI) for categorization - you must provide one API key
+
 ```bash
 # 1. Clone repo and navigate to directory
 git clone https://github.com/DrBenedictPorkins/image-categorizer.git
@@ -17,7 +21,7 @@ cd image-categorizer
 # 2. Install with uv
 uv pip install -e .
 
-# 3. Set API key (choose ONE)
+# 3. Set API key (choose ONE - required for categorization)
 export ANTHROPIC_API_KEY=your_key_here  # Recommended (or)
 export OPENAI_API_KEY=your_key_here     # Alternative
 
