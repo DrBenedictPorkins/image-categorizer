@@ -3,108 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Categorization Report</title>
+    <title>AI Image Categorizer - Smart Visual Organization</title>
     <!-- Include dragula for drag-and-drop functionality -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
     <style>
+        :root {
+            /* Modern color scheme */
+            --primary-color: #2563eb;      /* Modern blue */
+            --primary-light: #dbeafe;      /* Very light blue */
+            --primary-hover: #1d4ed8;      /* Slightly darker blue */
+            --secondary-color: #64748b;    /* Slate gray */
+            --accent-color: #f59e0b;      /* Amber */
+            --danger-color: #ef4444;      /* Red */
+            --success-color: #10b981;     /* Emerald green */
+            --bg-color: #f9fafb;          /* Off-white background */
+            --card-bg: #ffffff;           /* White */
+            --text-color: #1e293b;        /* Dark slate */
+            --text-light: #64748b;        /* Lighter slate */
+            --border-color: #e2e8f0;      /* Very light gray */
+            --gradient-start: #3b82f6;    /* Bright blue for gradients */
+            --gradient-end: #1e40af;      /* Darker blue for gradients */
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: var(--text-color);
             max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, var(--bg-color) 0%, var(--primary-light) 100%);
+            min-height: 100vh;
         }
+        
+        /* Add Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         .header {
             text-align: center;
             margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #ddd;
+            padding: 30px 20px;
+            border-radius: 12px;
+            background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="10" height="10" fill="rgba(255,255,255,0.05)"/></svg>');
+            opacity: 0.2;
+            z-index: 0;
+        }
+        
         .header h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
+            color: white;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            font-weight: 700;
+            font-size: 2.5rem;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.03em;
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
         .summary {
-            background-color: #e9ecef;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 30px;
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
         }
         
+        .summary::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(to bottom, var(--gradient-start), var(--gradient-end));
+            border-radius: 6px 0 0 6px;
+        }
+
         .summary-content {
             display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: stretch;
             gap: 20px;
         }
-        
+
         .summary-main {
-            flex: 1;
-            min-width: 250px;
+            width: 100%;
         }
         
+        .summary h2 {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        
+        .summary p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        
+        .summary p.summary-description {
+            margin-top: 16px;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            max-width: 90%;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+        }
+
         .directory-structure {
-            flex: 1;
-            min-width: 250px;
-            background-color: white;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            background-color: var(--primary-light);
+            padding: 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            position: relative;
         }
-        
+
         .directory-structure h3 {
-            margin-bottom: 10px;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 1.3rem;
+            position: relative;
+            padding-left: 18px;
+            display: flex;
+            align-items: center;
         }
         
-        .directory-structure::after {
-            content: "Click on a category to scroll to it";
-            display: block;
-            font-size: 0.8em;
-            color: #6c757d;
+        .directory-structure h3::after {
+            content: "(click to jump)";
+            margin-left: 10px;
+            font-size: 0.7em;
+            color: var(--text-light);
+            font-weight: normal;
             font-style: italic;
-            margin-top: 10px;
-            text-align: center;
         }
         
+        .directory-structure h3::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        /* Removing footer note as it will be placed next to title */
+
         .category-stats {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
         }
-        
+
         .category-stat-item {
             display: flex;
             justify-content: space-between;
-            padding: 5px 10px;
-            border-bottom: 1px solid #eee;
+            align-items: center;
+            background-color: white;
+            border-radius: 6px;
+            padding: 12px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            transition: all 0.2s ease;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            border-left: 4px solid;
+            width: calc(25% - 10px); /* Fixed width calculation accounting for gap */
+            box-sizing: border-box;
         }
+        
+        /* Border colors will be set via JavaScript */
         
         .category-stat-item:hover {
-            background-color: #e6f2ff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.06);
+            background-color: rgba(255, 255, 255, 0.95);
         }
-        
+
         /* Special styling for Trash category in summary */
         .category-stat-item:has(.category-stat-name:contains("Trash")) {
-            border-left: 3px solid #dc3545;
+            border-left-color: #dc3545 !important;
             position: relative;
+            width: 95%;
+            margin: 15px auto 0;
+            flex-basis: 95%;
+            border-top: 1px dashed #ddd;
+            padding-top: 15px;
+            background-color: #fff5f5 !important; /* Lighter red background */
         }
         
+        /* Add trash icon for browsers that support :has */
+        .category-stat-item:has(.category-stat-name:contains("Trash")) .category-stat-name::before {
+            content: "🗑️";
+            margin-right: 5px;
+        }
+
         /* Fallback for browsers that don't support :has or :contains */
         .trash-category-stat {
-            border-left: 3px solid #dc3545;
+            border-left-color: #dc3545 !important;
             position: relative;
+            width: 95%;
+            margin: 15px auto 0;
+            flex-basis: 95%;
+            border-top: 1px dashed #ddd;
+            padding-top: 15px;
+            background-color: #fff5f5 !important; /* Lighter red background */
         }
         
+        /* Add trash icon to category name in summary */
+        .trash-category-stat .category-stat-name::before {
+            content: "🗑️";
+            margin-right: 5px;
+        }
+
         /* Tooltip for trash category in summary */
         .trash-category-stat .category-stat-name {
             color: #dc3545;
             position: relative;
         }
         
+        /* Make image previews in Trash category 50% smaller */
+        .category-container[data-category="Trash"] .image-card {
+            transform: scale(0.5);
+            transform-origin: center top;
+            margin: -25px -50px; /* Adjust margins to prevent big gaps */
+            opacity: 0.8; /* Slightly faded appearance */
+            transition: all 0.2s ease;
+            height: 50%; /* Reduce height */
+        }
+        
+        .category-container[data-category="Trash"] .image-card:hover {
+            transform: scale(0.55); /* Slightly larger on hover */
+            opacity: 1;
+            z-index: 1; /* Bring to front when hovered */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+        
+        /* Make images in Trash category more compact */
+        .category-container[data-category="Trash"] .category-images {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            padding: 20px 0;
+        }
+        
+        /* Special styling for the "Deleted Items" title in Trash category */
+        .category-container[data-category="Trash"] .category-title-text {
+            color: var(--danger-color);
+            letter-spacing: 0.5px;
+        }
+        
+        /* Ensure image containers have a minimum size for small images */
+        .image-container {
+            min-height: 150px !important; /* Even if content is smaller */
+        }
+        
+        /* Ensure trash images have a minimum size too, but smaller */
+        .trash-category .image-container {
+            min-height: 120px !important;
+        }
+
         .trash-category-stat .category-stat-name::after {
             content: "Files in this category will be moved to the 'Trash' directory";
             position: absolute;
@@ -123,25 +309,44 @@
             z-index: 100;
             pointer-events: none;
         }
-        
+
         .trash-category-stat .category-stat-name:hover::after {
             opacity: 1;
             visibility: visible;
         }
-        
+
         .category-stat-name {
-            font-weight: bold;
-            color: #007bff;
+            font-weight: 600;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
         }
-        
+
+        .category-stat-item:hover .category-stat-name {
+            filter: brightness(0.85);
+        }
+
         .category-stat-count {
-            background-color: #007bff;
             color: white;
             border-radius: 12px;
-            padding: 2px 8px;
+            padding: 3px 10px;
             font-size: 0.85em;
-            min-width: 25px;
+            min-width: 28px;
             text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        /* Special styling for trash category count - will be handled by JavaScript */
+        .trash-category-stat .category-stat-count {
+            background-color: #dc3545 !important;
+        }
+
+        .category-stat-item:hover .category-stat-count {
+            opacity: 0.9;
+            transform: scale(1.05);
         }
         .image-grid {
             display: grid;
@@ -149,28 +354,34 @@
             gap: 25px;
         }
         .image-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
             cursor: move;
+            border: 1px solid var(--border-color);
+            border-top-width: 3px;
+            /* Border-top color will be set via JavaScript to match category */
         }
         .image-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            border-color: var(--primary-light);
+            /* Top border color preserved on hover - handled by JavaScript */
         }
         .image-container {
             position: relative;
             width: 100%;
             height: 200px;
             overflow: hidden;
-            background-color: #f1f1f1;
+            background-color: var(--primary-light);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: grab; /* Show grabbing cursor to indicate draggable */
         }
-        
+
         .image-container::after {
             content: "Drag from here";
             position: absolute;
@@ -185,7 +396,7 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
+
         .trash-icon {
             position: absolute;
             top: 8px;
@@ -206,24 +417,59 @@
             color: #dc3545;
             font-size: 14px;
         }
-        
+
         .image-container:hover .trash-icon {
             opacity: 0.7;
         }
-        
+
         .trash-icon:hover {
             opacity: 1 !important;
             background-color: rgba(255, 255, 255, 0.95);
             transform: scale(1.1);
         }
         
+        /* Restore icon styling */
+        .restore-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.3;
+            z-index: 10;
+            transition: all 0.2s ease;
+            border: none;
+            color: #28a745; /* Green color */
+        }
+        
+        .image-container:hover .restore-icon {
+            opacity: 0.7;
+        }
+        
+        .restore-icon:hover {
+            opacity: 1 !important;
+            background-color: rgba(255, 255, 255, 0.95);
+            transform: scale(1.1);
+            color: #1e7e34; /* Darker green on hover */
+        }
+
         .image-container:hover::after {
             opacity: 1;
         }
         .thumbnail {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain; /* Changed from 'cover' to 'contain' to maintain aspect ratio */
+            background-color: #f5f5f5; /* Light gray background for transparent images */
+            min-width: 100px; /* Ensure minimum width */
+            min-height: 100px; /* Ensure minimum height even in Trash category */
         }
         .preview-overlay {
             display: none;
@@ -237,66 +483,169 @@
             justify-content: center;
             align-items: center;
         }
-        
+
         .preview-content {
             position: relative;
+            width: 90%;
+            max-width: 1200px;
+            height: 90%;
+            max-height: 90vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            background-color: #111;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 15px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            width: 100%;
+            height: 60px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .preview-trash-prominent {
+            width: 45px !important;
+            height: 45px !important;
+            background-color: rgba(220, 53, 69, 0.7) !important; /* More red for trash action */
+            font-size: 24px !important;
+            margin-right: 15px;
+            order: -1; /* Ensure it's first */
+        }
+        
+        .preview-trash-prominent:hover {
+            transform: scale(1.1);
+        }
+        
+        .preview-trash-prominent.preview-trash:hover {
+            background-color: rgba(220, 53, 69, 0.9) !important;
+        }
+        
+        .preview-trash-prominent.preview-restore:hover {
+            background-color: rgba(40, 167, 69, 0.9) !important;
+        }
+        
+        .preview-header-title {
+            font-size: 18px;
+            font-weight: 500;
+            opacity: 0.9;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .preview-image-container {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 90%;
-            height: 90%;
+            position: relative;
+            padding: 20px;
+            overflow: hidden;
         }
         
-        .fullsize-preview {
-            max-width: 70vw;  /* Reduced from 90vw */
-            max-height: 70vh; /* Reduced from 90vh */
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border: 5px solid white;
-            background-color: white;
-            object-fit: contain; /* Maintain aspect ratio */
-            z-index: 1001;
+        .preview-footer {
+            display: flex;
+            flex-direction: column;
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.8);
+            width: 100%;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .preview-nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 50px;
-            height: 50px;
-            background-color: rgba(255, 255, 255, 0.3);
+        .preview-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 10px;
+        }
+        
+        .preview-nav-button, 
+        .preview-action-button {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s ease;
+        }
+        
+        .preview-nav-button:hover,
+        .preview-action-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .preview-filename {
+            color: white;
+            opacity: 0.8;
+            font-size: 14px;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fullsize-preview {
+            max-width: 100%;
+            max-height: calc(90vh - 150px); /* Account for taller header and footer */
+            min-width: 200px; /* Smaller minimum since we have a structured container */
+            min-height: 150px;
+            object-fit: contain; /* Maintain aspect ratio */
+            background-color: transparent;
+            padding: 10px;
+            cursor: default; /* No longer clickable to close */
+            margin: 0 auto; /* Center the image */
+            display: block;
+            border-radius: 4px; /* Add slight rounding to the image */
+        }
+
+        /* Navigation buttons are now in the footer toolbar */
+
+        .preview-close {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.6);  /* Darker background for better visibility */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;  /* Larger font */
+            font-weight: bold; /* Bolder text */
             color: white;
             cursor: pointer;
             transition: background-color 0.2s, opacity 0.2s;
             z-index: 1002;
-            opacity: 0.6;
-            text-shadow: 0 0 3px rgba(0,0,0,0.8);
+            opacity: 0.8;  /* More visible by default */
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); /* Add shadow for contrast */
         }
-        
-        .preview-nav-arrow:hover {
-            background-color: rgba(255, 255, 255, 0.5);
+
+        .preview-close:hover {
+            background-color: rgba(255, 0, 0, 0.7); /* Red background on hover */
             opacity: 1;
         }
         
-        .preview-nav-left {
-            left: 20px;
-        }
-        
-        .preview-nav-right {
-            right: 20px;
-        }
-        
-        .preview-close {
+        /* Trash/Restore button in preview */
+        .preview-trash,
+        .preview-restore {
             position: absolute;
             top: 20px;
-            right: 20px;
+            left: 20px;
             width: 40px;
             height: 40px;
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(0, 0, 0, 0.6);
             border-radius: 50%;
             display: flex;
             justify-content: center;
@@ -306,12 +655,44 @@
             cursor: pointer;
             transition: background-color 0.2s, opacity 0.2s;
             z-index: 1002;
-            opacity: 0.6;
+            opacity: 0.8;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
         
-        .preview-close:hover {
-            background-color: rgba(255, 255, 255, 0.5);
+        .preview-trash:hover {
+            background-color: rgba(220, 53, 69, 0.8); /* Red background on hover */
             opacity: 1;
+        }
+        
+        .preview-restore:hover {
+            background-color: rgba(40, 167, 69, 0.8); /* Green background on hover */
+            opacity: 1;
+        }
+        
+        /* No more images overlay */
+        .no-more-images-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .no-more-images-message {
+            background: white;
+            padding: 25px 40px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
         .card-content {
             padding: 15px;
@@ -322,7 +703,7 @@
             margin-bottom: 10px;
             position: relative;
         }
-        
+
         /* Style the select dropdown */
         .category-select {
             font-weight: bold;
@@ -336,11 +717,11 @@
             width: 100%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .category-select:hover {
             background-color: #0069d9;
         }
-        
+
         .category-select option {
             background-color: white;
             color: #333;
@@ -368,7 +749,7 @@
             color: #6c757d;
             font-size: 0.9em;
         }
-        
+
         /* Category containers for drag and drop */
         .categories-container {
             display: flex;
@@ -376,29 +757,61 @@
             gap: 30px;
             margin-bottom: 40px;
         }
-        
+
         .category-container {
-            background-color: #fff;
+            background-color: var(--card-bg);
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
             scroll-margin-top: 20px; /* Ensures some space at the top when scrolling to this element */
+            border-top: 4px solid; /* Color will be set dynamically via JavaScript */
         }
-        
+
+        .category-container:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
         /* Special styling for Trash category */
         .category-container[data-category="Trash"] {
-            border: 2px solid #dc3545;
             background-color: #fff9f9;
-            margin-top: 30px; /* Add extra spacing before Trash */
+            margin-top: 30px; /* Reduced spacing before Trash to compensate for the title */
             position: relative; /* For tooltip positioning */
+            border-left: 1px solid var(--danger-color);
+            border-right: 1px solid var(--danger-color);
+            border-bottom: 1px solid var(--danger-color);
+            box-shadow: 0 4px 12px rgba(220,53,69,0.15); /* Red-tinted shadow */
+            padding-top: 30px; /* Extra padding at the top to make room for the "Deleted Items" header */
         }
         
+        /* Add trash icon to category title */
+        .category-container[data-category="Trash"] .category-title-text::before {
+            content: "🗑️ ";
+            margin-right: 5px;
+        }
+
         .category-container[data-category="Trash"] .category-title-text {
             color: #dc3545;
             position: relative; /* For tooltip */
         }
         
+        /* Create trash badge element instead of using ::after */
+        .category-title-trash-badge {
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            background-color: #dc3545;
+            padding: 2px 5px;
+            border-radius: 4px;
+            position: relative;
+            top: -2px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
         /* Tooltip for Trash category */
         .category-container[data-category="Trash"] .category-title-text::after {
             content: "Files in this category will be moved to the 'Trash' directory";
@@ -419,34 +832,37 @@
             margin-top: 5px;
             font-weight: normal;
         }
-        
+
         .category-container[data-category="Trash"] .category-title-text:hover::after {
             opacity: 1;
             visibility: visible;
         }
-        
+
         .category-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            border-bottom: 1px solid #eee;
             padding-bottom: 10px;
+            position: relative;
         }
         
+        /* Category borders will be set via JavaScript */
+
+        /* Category title - colors will be set via JavaScript */
         .category-title {
             font-size: 1.5em;
-            color: #007bff;
             margin: 0;
             display: flex;
             align-items: center;
             gap: 10px;
+            padding-bottom: 5px;
         }
-        
+
         .category-title-text {
             flex-grow: 1;
         }
-        
+
         .edit-category-icon {
             cursor: pointer;
             opacity: 0.7;
@@ -463,7 +879,7 @@
             padding: 0;
             margin-left: 8px;
         }
-        
+
         .trash-all-category-icon {
             cursor: pointer;
             opacity: 0.7;
@@ -481,20 +897,20 @@
             margin-left: 8px;
             color: #dc3545;
         }
-        
+
         .edit-category-icon:hover {
             opacity: 1;
             border-color: #007bff;
             background-color: #f0f8ff;
         }
-        
+
         .trash-all-category-icon:hover {
             opacity: 1;
             border-color: #dc3545;
             background-color: #fff9f9;
             transform: translateY(-1px);
         }
-        
+
         .category-edit-input {
             font-size: inherit;
             font-family: inherit;
@@ -506,24 +922,33 @@
             width: 100%;
             margin-right: 10px;
         }
-        
+
         .category-count {
-            background-color: #007bff;
             color: white;
             border-radius: 20px;
-            padding: 2px 10px;
+            padding: 4px 12px;
             font-size: 0.9em;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: bold;
         }
         
+        /* Category count badge colors - matching the list colors */
+        .category:nth-of-type(6n+1) .category-count { background-color: #3b82f6; }
+        .category:nth-of-type(6n+2) .category-count { background-color: #10b981; }
+        .category:nth-of-type(6n+3) .category-count { background-color: #f59e0b; }
+        .category:nth-of-type(6n+4) .category-count { background-color: #8b5cf6; }
+        .category:nth-of-type(6n+5) .category-count { background-color: #ec4899; }
+        .category:nth-of-type(6n+6) .category-count { background-color: #14b8a6; }
+
         .category-images {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 15px;
             min-height: 100px;
         }
-        
-        
-        
+
+
+
         /* Group categories styling for initial view */
         .group-categories {
             background-color: #e9ecef;
@@ -531,21 +956,21 @@
             border-radius: 5px;
             margin-bottom: 30px;
         }
-        
+
         .category-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 20px;
             margin-top: 15px;
         }
-        
+
         .category-card {
             background: white;
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
+
         .category-card h3 {
             color: #007bff;
             margin-top: 0;
@@ -553,12 +978,12 @@
             padding-bottom: 8px;
             margin-bottom: 10px;
         }
-        
+
         .category-card ul {
             padding-left: 20px;
             margin-bottom: 5px;
         }
-        
+
         /* Dragula styles */
         .gu-mirror {
             position: fixed !important;
@@ -580,16 +1005,16 @@
             opacity: 0.2;
             transform: rotate(0);
         }
-        
+
         /* Style for when image is being dragged */
         .gu-mirror .image-container {
             cursor: grabbing; /* Change cursor during active drag */
         }
-        
+
         .gu-mirror .card-content {
             display: none; /* Hide metadata during drag to focus on the image */
         }
-        
+
         /* Notification styles */
         .notification {
             position: fixed;
@@ -604,12 +1029,12 @@
             z-index: 9999;
             animation: fadeIn 0.3s ease;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         /* Generate script button */
         .view-toggle {
             display: flex;
@@ -617,30 +1042,34 @@
             margin-bottom: 20px;
             padding: 0 20px;
         }
-        
+
         .generate-script-btn {
-            background-color: #dc3545;
+            background-color: var(--accent-color);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 18px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
         }
-        
+
         .generate-script-btn:hover {
-            background-color: #bd2130;
+            background-color: #d35400;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
         }
-        
+
         .add-category-btn {
-            background-color: #28a745;
+            background-color: var(--success-color);
             color: white;
             border: none;
             padding: 8px 15px;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 18px;
             font-weight: bold;
@@ -649,12 +1078,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
         }
-        
+
         .add-category-btn:hover {
-            background-color: #218838;
+            background-color: #1d9d3b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
         }
-        
+
         /* New Category Modal */
         #category-modal {
             display: none;
@@ -667,17 +1100,18 @@
             background-color: rgba(0,0,0,0.7);
             overflow: auto;
         }
-        
+
         .category-modal-content {
-            background-color: #f8f9fa;
+            background: linear-gradient(to bottom, var(--bg-color), white);
             margin: 15% auto;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 25px;
+            border-radius: 12px;
             width: 80%;
             max-width: 500px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            border-top: 4px solid var(--primary-color);
         }
-        
+
         .category-modal-header {
             display: flex;
             justify-content: space-between;
@@ -686,69 +1120,79 @@
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
-        
+
         .category-modal-title {
             font-size: 1.5em;
             color: #2c3e50;
             margin: 0;
         }
-        
+
         .category-input-group {
             margin-bottom: 20px;
         }
-        
+
         .category-input-group label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
-        
+
         .category-input-group input {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        
+
         .category-input-group .error-message {
             color: #dc3545;
             font-size: 0.9em;
             margin-top: 5px;
             display: none;
         }
-        
+
         .category-modal-actions {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
         }
-        
+
         .cancel-btn {
-            background-color: #6c757d;
+            background-color: var(--secondary-color);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 18px;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .cancel-btn:hover {
             background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
         }
-        
+
         .create-btn {
-            background-color: #28a745;
+            background-color: var(--success-color);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 18px;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .create-btn:hover {
             background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
         }
-        
+
         /* Script modal */
         .modal {
             display: none;
@@ -761,17 +1205,18 @@
             background-color: rgba(0,0,0,0.7);
             overflow: auto;
         }
-        
+
         .modal-content {
-            background-color: #f8f9fa;
+            background: linear-gradient(to bottom, var(--bg-color), white);
             margin: 5% auto;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 25px;
+            border-radius: 12px;
             width: 80%;
             max-width: 800px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            border-top: 4px solid var(--accent-color);
         }
-        
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -780,24 +1225,24 @@
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
-        
+
         .modal-title {
             font-size: 1.5em;
             color: #2c3e50;
             margin: 0;
         }
-        
+
         .close-modal {
             font-size: 28px;
             font-weight: bold;
             color: #aaa;
             cursor: pointer;
         }
-        
+
         .close-modal:hover {
             color: #333;
         }
-        
+
         .script-content {
             background-color: #2c3e50;
             color: #f8f9fa;
@@ -810,26 +1255,47 @@
             max-height: 400px;
             overflow-y: auto;
         }
-        
-        .copy-btn {
-            background-color: #28a745;
+
+        .script-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .copy-btn, .download-btn {
+            flex: 1;
             color: white;
             border: none;
-            padding: 8px 15px;
+            padding: 10px 15px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
         }
-        
+
+        .copy-btn {
+            background-color: var(--primary-color);
+        }
+
+        .download-btn {
+            background-color: #28a745;
+        }
+
         .copy-btn:hover {
-            background-color: #218838;
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
         }
-        
+
+        .download-btn:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
         /* Categories view */
         #categories-view {
             display: block;
         }
-        
+
         /* Back to top button */
         .back-to-top {
             position: fixed;
@@ -850,14 +1316,33 @@
             transition: opacity 0.3s, visibility 0.3s, background-color 0.3s;
             z-index: 100;
         }
-        
+
         .back-to-top:hover {
             background-color: #0056b3;
         }
-        
+
         .back-to-top.visible {
             opacity: 1;
             visibility: visible;
+        }
+        
+        /* Responsive adjustments for category columns */
+        @media (max-width: 1200px) {
+            .category-stat-item {
+                width: calc(33.33% - 10px);
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .category-stat-item {
+                width: calc(50% - 10px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .category-stat-item {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -866,9 +1351,9 @@
         <h1>Image Categorization Report</h1>
         <p>Generated on {{timestamp}}</p>
     </div>
-    
+
     {{summary}}
-    
+
     <!-- Button bar -->
     <div class="view-toggle">
         <div class="left-actions">
@@ -878,32 +1363,52 @@
             <button id="generate-script" class="generate-script-btn">Generate Move Script</button>
         </div>
     </div>
-    
+
     <!-- Categories view (drag and drop enabled) -->
     <div id="categories-view">
         <div class="categories-container"></div>
     </div>
-    
+
     <!-- Preview overlay for full-size images -->
     <div id="preview-overlay" class="preview-overlay">
         <div class="preview-content">
-            <div id="preview-nav-left" class="preview-nav-arrow preview-nav-left">←</div>
-            <img id="preview-image" class="fullsize-preview">
-            <div id="preview-nav-right" class="preview-nav-arrow preview-nav-right">→</div>
-            <div id="preview-close" class="preview-close">✕</div>
+            <div class="preview-header">
+                <div id="preview-trash" class="preview-action-button preview-trash-prominent" title="Move to Trash">🗑️</div>
+                <div class="preview-header-title" id="preview-header-title">Image Preview</div>
+                <div id="preview-close" class="preview-close">✕</div>
+            </div>
+            
+            <div class="preview-image-container">
+                <img id="preview-image" class="fullsize-preview">
+            </div>
+            
+            <div class="preview-footer">
+                <div class="preview-controls">
+                    <div id="preview-nav-left" class="preview-nav-button" title="Previous Image">←</div>
+                    <div id="preview-nav-right" class="preview-nav-button" title="Next Image">→</div>
+                </div>
+                <div id="preview-filename" class="preview-filename"></div>
+            </div>
         </div>
     </div>
     
+    <!-- No more images overlay -->
+    <div id="no-more-images" class="no-more-images-overlay">
+        <div class="no-more-images-message">
+            No more images in this category
+        </div>
+    </div>
+
     <!-- Notification for user feedback -->
     <div class="notification" id="notification">Image moved successfully!</div>
-    
+
     <!-- Back to top button -->
     <div id="back-to-top" class="back-to-top" title="Back to Suggested Categories">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 19V5M5 12l7-7 7 7"/>
         </svg>
     </div>
-    
+
     <!-- Script generation modal -->
     <div id="script-modal" class="modal">
         <div class="modal-content">
@@ -914,10 +1419,13 @@
             <div class="script-content" id="script-content">
                 # Script is being generated...
             </div>
-            <button class="copy-btn" id="copy-btn">Copy to Clipboard</button>
+            <div class="script-actions">
+                <button class="download-btn" id="download-btn">Download Script</button>
+                <button class="copy-btn" id="copy-btn">Copy to Clipboard</button>
+            </div>
         </div>
     </div>
-    
+
     <!-- New Category Modal -->
     <div id="category-modal">
         <div class="category-modal-content">
@@ -938,31 +1446,31 @@
             </div>
         </div>
     </div>
-    
+
     <div class="footer">
-        <p>Generated by Gemma3 Categorizer | Using Salesforce BLIP for image analysis</p>
+        <p>Generated by AI Image Categorizer | Using Salesforce BLIP for image analysis</p>
     </div>
-    
+
     <!-- Include Dragula for drag and drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
     <script>
         // Initialize with card data
         const cardData = {{card_data}};
         const categoriesData = {{categories_data}};
-        
+
         // Initialize global data
         window.cardData = cardData;
         window.categoriesData = categoriesData;
-        
+
         // Ensure Trash category always exists in categoriesData
         function ensureTrashCategoryExists() {
             if (!window.categoriesData) {
                 window.categoriesData = [];
             }
-            
+
             // Check if Trash category exists
             const trashExists = window.categoriesData.some(cat => cat && cat.name === 'Trash');
-            
+
             if (!trashExists) {
                 // Add empty Trash category
                 window.categoriesData.push({
@@ -971,10 +1479,10 @@
                 });
             }
         }
-        
+
         // Call this immediately
         ensureTrashCategoryExists();
-        
+
         // Function to show the overlay with the clicked image and enable navigation
         window.showPreview = function(imageUrl, alt, imageCard) {
             const overlay = document.getElementById('preview-overlay');
@@ -982,79 +1490,103 @@
             const navLeft = document.getElementById('preview-nav-left');
             const navRight = document.getElementById('preview-nav-right');
             const closeBtn = document.getElementById('preview-close');
-            
+            const trashBtn = document.getElementById('preview-trash');
+
             // Store current image card for navigation
             window.currentPreviewCard = imageCard || event.target.closest('.image-card');
-            
+
             // Set the image
             previewImg.src = imageUrl;
             previewImg.alt = alt || 'Full size preview';
             
+            // Update the trash/restore button based on category
+            if (window.currentPreviewCard) {
+                const currentCategory = window.currentPreviewCard.dataset.category;
+                if (currentCategory === 'Trash') {
+                    // It's in trash, so show restore button
+                    trashBtn.innerHTML = '↩️';
+                    trashBtn.title = 'Restore from Trash';
+                    trashBtn.classList.add('preview-restore');
+                    // Keep the prominent styling but remove regular trash class
+                    trashBtn.classList.remove('preview-trash');
+                    // Change background color for restore action
+                    trashBtn.style.backgroundColor = 'rgba(40, 167, 69, 0.7)';
+                } else {
+                    // Not in trash, show trash button
+                    trashBtn.innerHTML = '🗑️';
+                    trashBtn.title = 'Move to Trash';
+                    trashBtn.classList.add('preview-trash');
+                    trashBtn.classList.remove('preview-restore');
+                    // Reset to default trash color
+                    trashBtn.style.backgroundColor = 'rgba(220, 53, 69, 0.7)';
+                }
+            }
+
             // Show the overlay
             overlay.style.display = 'flex';
-            
+
             // Update navigation arrows visibility
             updatePreviewNavigationControls();
-            
+
             // Set up event listeners for navigation
             navLeft.onclick = function(e) {
                 e.stopPropagation();
                 navigatePreview('prev');
             };
-            
+
             navRight.onclick = function(e) {
                 e.stopPropagation();
                 navigatePreview('next');
             };
-            
+
             // Close button handler
             closeBtn.onclick = function(e) {
                 e.stopPropagation();
                 overlay.style.display = 'none';
             };
-            
+
             // Add keyboard navigation
             overlay.onkeydown = handlePreviewKeydown;
-            
+
             // Focus the overlay to capture keyboard events
             overlay.tabIndex = 0;
             overlay.focus();
         }
-        
+
         // Function to update navigation controls visibility based on current image position
         function updatePreviewNavigationControls() {
             if (!window.currentPreviewCard) return;
-            
+
             const navLeft = document.getElementById('preview-nav-left');
             const navRight = document.getElementById('preview-nav-right');
-            
+
             // Get the category and all images in that category
             const category = window.currentPreviewCard.dataset.category;
             const categoryContainer = document.querySelector(`.category-container[data-category="${category}"]`);
-            
+
             if (categoryContainer) {
                 const allImagesInCategory = Array.from(categoryContainer.querySelectorAll('.image-card'));
                 const currentIndex = allImagesInCategory.indexOf(window.currentPreviewCard);
-                
+
                 // Show/hide left arrow
                 navLeft.style.display = currentIndex > 0 ? 'flex' : 'none';
-                
+
                 // Show/hide right arrow
                 navRight.style.display = currentIndex < allImagesInCategory.length - 1 ? 'flex' : 'none';
             }
         }
-        
+
         // Function to navigate to the previous or next image in the same category
         function navigatePreview(direction) {
             if (!window.currentPreviewCard) return;
-            
+
             const category = window.currentPreviewCard.dataset.category;
             const categoryContainer = document.querySelector(`.category-container[data-category="${category}"]`);
-            
+
             if (categoryContainer) {
                 const allImagesInCategory = Array.from(categoryContainer.querySelectorAll('.image-card'));
                 const currentIndex = allImagesInCategory.indexOf(window.currentPreviewCard);
-                
+
                 let newIndex;
                 if (direction === 'prev' && currentIndex > 0) {
                     newIndex = currentIndex - 1;
@@ -1063,25 +1595,25 @@
                 } else {
                     return; // No valid navigation
                 }
-                
+
                 const newCard = allImagesInCategory[newIndex];
                 const thumbnail = newCard.querySelector('.thumbnail');
-                
+
                 if (thumbnail) {
                     // Update the current preview card
                     window.currentPreviewCard = newCard;
-                    
+
                     // Update the image
                     const previewImg = document.getElementById('preview-image');
                     previewImg.src = thumbnail.src;
                     previewImg.alt = thumbnail.alt;
-                    
+
                     // Update navigation controls
                     updatePreviewNavigationControls();
                 }
             }
         }
-        
+
         // Handle keyboard navigation in preview mode
         function handlePreviewKeydown(e) {
             switch (e.key) {
@@ -1099,7 +1631,7 @@
                     break;
             }
         }
-        
+
         // Define updateCategoryCounts function globally before it's used
         window.updateCategoryCounts = function() {
             // Update counts in the main category containers
@@ -1107,29 +1639,92 @@
                 const imagesContainer = container.querySelector('.category-images');
                 const totalCount = imagesContainer.childElementCount;
                 const countElement = container.querySelector('.category-count');
-                
+                const categoryName = container.dataset.category;
+
                 // Update visible/hidden counts
                 const visibleImages = imagesContainer.querySelectorAll('.image-card:not(.hidden-image)').length;
                 const hiddenImages = totalCount - visibleImages;
-                
+
                 // Update the dataset values
                 container.dataset.totalImages = totalCount;
                 if (!container.dataset.visibleImages || parseInt(container.dataset.visibleImages) > totalCount) {
                     container.dataset.visibleImages = Math.min(3, totalCount);
                 }
-                
+
                 if (countElement) {
                     countElement.textContent = totalCount;
                     // Also update data attributes for script generation
                     container.dataset.count = totalCount;
                 }
-                
+
                 // Simply update the dataset totalImages value
                 container.dataset.totalImages = totalCount;
                 container.dataset.visibleImages = totalCount;
-                
+
+                // Handle categories (except the Trash category)
+                if (categoryName !== 'Trash') {
+                    // Find the trash-all-category-icon
+                    const trashAllIcon = container.querySelector('.trash-all-category-icon');
+                    if (trashAllIcon) {
+                        // Check if the category is empty or not
+                        if (totalCount === 0) {
+                            // Empty category - change appearance to indicate it will remove the category
+                            trashAllIcon.style.color = 'red';
+                            trashAllIcon.innerHTML = '❌'; // Change to X icon
+                            trashAllIcon.title = 'Remove empty category';
+
+                            // Remove the old event listener before adding a new one
+                            trashAllIcon.outerHTML = trashAllIcon.outerHTML;
+
+                            // Get the fresh element reference after recreating it
+                            const freshIcon = container.querySelector('.trash-all-category-icon');
+
+                            // Add the appropriate event listener for empty category
+                            freshIcon.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                // Ask for confirmation
+                                if (confirm(`Are you sure you want to remove the empty category "${categoryName}"?`)) {
+                                    // Remove the category container
+                                    container.remove();
+                                    // Notify the user
+                                    const notification = document.getElementById('notification');
+                                    notification.innerText = `Removed empty category "${categoryName}"`;
+                                    notification.style.display = 'block';
+                                    setTimeout(() => {
+                                        notification.style.display = 'none';
+                                    }, 2000);
+
+                                    // Update internal data
+                                    window.syncCategoryData();
+                                }
+                            });
+                        } else {
+                            // Non-empty category - use default appearance
+                            trashAllIcon.style.color = ''; // Reset to default color
+                            trashAllIcon.innerHTML = '🗑️'; // Reset to trash icon
+                            trashAllIcon.title = 'Move all images to Trash';
+
+                            // Remove the old event listener before adding a new one
+                            trashAllIcon.outerHTML = trashAllIcon.outerHTML;
+
+                            // Get the fresh element reference after recreating it
+                            const freshIcon = container.querySelector('.trash-all-category-icon');
+
+                            // Add the appropriate event listener for non-empty category
+                            freshIcon.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                // Get the current count
+                                const currentCount = container.querySelector('.category-images').childElementCount;
+                                // Handle non-empty category case
+                                if (confirm(`Are you sure you want to move all images (${currentCount}) from "${categoryName}" to Trash?`)) {
+                                    moveAllToTrash(categoryName);
+                                }
+                            });
+                        }
+                    }
+                }
+
                 // Update count in the summary stats if it exists
-                const categoryName = container.dataset.category;
                 if (categoryName) {
                     // Find the category stat item by its text content
                     document.querySelectorAll('.category-stat-name').forEach(nameEl => {
@@ -1141,8 +1736,13 @@
                         }
                     });
                 }
+                
+                // Apply visual weight based on count for non-Trash categories
+                if (categoryName !== 'Trash') {
+                    updateCategoryVisualWeight(container, totalCount);
+                }
             });
-            
+
             // Update the categoriesData array to reflect current state for script generation
             if (!window.categoriesData) {
                 window.categoriesData = [];
@@ -1150,7 +1750,7 @@
                 // Clear existing data but keep the array reference
                 window.categoriesData.length = 0;
             }
-            
+
             document.querySelectorAll('.category-container').forEach(container => {
                 const categoryName = container.dataset.category;
                 const count = container.querySelector('.category-images').childElementCount;
@@ -1161,24 +1761,24 @@
                     });
                 }
             });
-            
+
             console.log('Category counts updated');
         };
-        
+
         // Function to create a card element from data
         function createCard(data) {
             const card = document.createElement('div');
             card.className = 'image-card';
             card.dataset.id = data.filename;
             card.dataset.category = data.category;
-            
+
             // Create elements programmatically instead of using innerHTML
             // This ensures event handlers are properly attached
-            
+
             // Create the image container
             const imageContainer = document.createElement('div');
             imageContainer.className = 'image-container';
-            
+
             if (data.error) {
                 // Error card
                 imageContainer.style.backgroundColor = '#ffeeee';
@@ -1193,83 +1793,104 @@
                 thumbnail.className = 'thumbnail';
                 thumbnail.src = data.thumbnail;
                 thumbnail.alt = data.filename;
-                
+
                 // Add click handler for image preview
                 thumbnail.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     window.showPreview(this.src, this.alt, card);
                 });
-                
+
                 imageContainer.appendChild(thumbnail);
-                
-                // Add trash icon (unless card is already in Trash)
-                if (data.category !== 'Trash') {
+
+                // Add appropriate icon based on category
+                if (data.category === 'Trash') {
+                    // Add restore icon for items in Trash
+                    const restoreIcon = document.createElement('button');
+                    restoreIcon.className = 'restore-icon';
+                    restoreIcon.innerHTML = '↩️'; // Curved arrow for restore
+                    restoreIcon.title = 'Restore from Trash';
+                    
+                    // Store original category if available (for restore functionality)
+                    if (data.originalCategory) {
+                        card.dataset.originalCategory = data.originalCategory;
+                    }
+
+                    // Add click handler to restore from Trash
+                    restoreIcon.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        restoreFromTrash(card);
+                    });
+
+                    imageContainer.appendChild(restoreIcon);
+                } else {
+                    // Add trash icon for items not in Trash
                     const trashIcon = document.createElement('button');
                     trashIcon.className = 'trash-icon';
                     trashIcon.innerHTML = '🗑️';
                     trashIcon.title = 'Move to Trash';
-                    
+
                     // Add click handler to move to Trash category
                     trashIcon.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         moveToTrash(card);
                     });
-                    
+
                     imageContainer.appendChild(trashIcon);
                 }
             }
-            
+
             // Create the card content container
             const cardContent = document.createElement('div');
             cardContent.className = 'card-content';
-            
+
             // Create the category container
             const categoryDiv = document.createElement('div');
             categoryDiv.className = 'category';
-            
+
             // Create a select dropdown instead of a div
             const categorySelect = document.createElement('select');
             categorySelect.className = 'category-select';
             categorySelect.title = 'Select to change category';
-            
+
             // Add a change event listener to the select
             categorySelect.addEventListener('change', function(e) {
                 const newCategory = this.value;
                 const cardElement = this.closest('.image-card');
                 const imageId = cardElement.dataset.id;
-                
+
                 // Skip if selecting the current category (first option)
                 const currentCategory = cardElement.dataset.category;
                 if (newCategory === currentCategory) {
                     return;
                 }
-                
+
                 console.log("Moving image to category:", newCategory);
-                
+
                 // Find target container
                 const targetContainer = document.querySelector('.category-container[data-category="' + newCategory + '"] .category-images');
                 if (targetContainer) {
                     // Move card to new category
                     targetContainer.appendChild(cardElement);
-                    
+
                     // Update data attribute
                     cardElement.dataset.category = newCategory;
-                    
+
                     // Immediately update the select dropdown to show the new category as current
                     const select = cardElement.querySelector('.category-select');
                     if (select) {
                         // Clear existing options
                         select.innerHTML = '';
-                        
+
                         // Add new category as "Current"
                         const currentOption = document.createElement('option');
                         currentOption.value = newCategory;
                         currentOption.textContent = newCategory + " (Current)";
                         currentOption.selected = true;
                         select.appendChild(currentOption);
-                        
+
                         // Get all categories to add the rest
                         const allCategories = [];
                         document.querySelectorAll('.category-container').forEach(container => {
@@ -1278,7 +1899,7 @@
                                 allCategories.push(catName);
                             }
                         });
-                        
+
                         // Add all other categories (sorted alphabetically, but with Trash at the end)
                         allCategories.sort((a, b) => {
                             if (a === 'Trash') return 1; // Keep Trash at the end
@@ -1294,63 +1915,63 @@
                             }
                         });
                     }
-                    
+
                     // Update counts
                     window.updateCategoryCounts();
-                    
+
                     // Show notification
                     const notification = document.getElementById('notification');
                     notification.style.display = 'block';
                     notification.textContent = "Moved \"" + imageId + "\" to " + newCategory;
-                    
+
                     // Hide notification after 2 seconds
                     setTimeout(function() {
                         notification.style.display = 'none';
                     }, 2000);
-                    
+
                     // Rebuild the select options - will happen after DOM update
                     setTimeout(function() {
                         window.rebuildCategorySelects();
                     }, 100);
                 }
             });
-            
+
             // Add current category as first option
             const currentOption = document.createElement('option');
             currentOption.value = data.category;
             currentOption.textContent = data.category + " (Current)";
             currentOption.selected = true;
             categorySelect.appendChild(currentOption);
-            
+
             // Add the select to the category div
             categoryDiv.appendChild(categorySelect);
-            
+
             // Create filename element
             const filenameDiv = document.createElement('div');
             filenameDiv.className = 'filename';
             filenameDiv.textContent = data.filename;
-            
+
             // Create description element
             const descriptionDiv = document.createElement('div');
             descriptionDiv.className = 'description';
             descriptionDiv.textContent = data.description;
-            
+
             // Add all elements to card content
             cardContent.appendChild(categoryDiv);
             cardContent.appendChild(filenameDiv);
             cardContent.appendChild(descriptionDiv);
-            
+
             // Add all main elements to card
             card.appendChild(imageContainer);
             card.appendChild(cardContent);
-            
+
             return card;
         }
-        
+
         // Function to rebuild all category select dropdowns
         window.rebuildCategorySelects = function() {
             console.log("Rebuilding all category selects");
-            
+
             // Gather all category names
             const allCategories = [];
             document.querySelectorAll('.category-container').forEach(container => {
@@ -1359,33 +1980,33 @@
                     allCategories.push(categoryName);
                 }
             });
-            
+
             // Sort categories alphabetically but keep Trash at the end
             allCategories.sort((a, b) => {
                 if (a === 'Trash') return 1; // Keep Trash at the end
                 if (b === 'Trash') return -1; // Keep Trash at the end
                 return a.toLowerCase().localeCompare(b.toLowerCase());
             });
-            
+
             // For each image card, update its select dropdown
             document.querySelectorAll('.image-card').forEach(card => {
                 const currentCategory = card.dataset.category;
                 const select = card.querySelector('.category-select');
-                
+
                 if (select) {
                     // Save the current selection
                     const currentValue = select.value;
-                    
+
                     // Clear existing options
                     select.innerHTML = '';
-                    
+
                     // Add current category as first option
                     const currentOption = document.createElement('option');
                     currentOption.value = currentCategory;
                     currentOption.textContent = currentCategory + " (Current)";
                     currentOption.selected = true;
                     select.appendChild(currentOption);
-                    
+
                     // Add all other categories (already sorted with Trash at the end)
                     allCategories.forEach(catName => {
                         if (catName !== currentCategory) {
@@ -1398,7 +2019,7 @@
                 }
             });
         };
-        
+
         // Function to sync category data with current DOM state
         window.syncCategoryData = function() {
             // This ensures our internal data structures match the DOM state
@@ -1408,7 +2029,7 @@
                 // Clear existing data but keep the array reference
                 window.categoriesData.length = 0;
             }
-            
+
             document.querySelectorAll('.category-container').forEach(container => {
                 const categoryName = container.dataset.category;
                 const count = container.querySelector('.category-images').childElementCount;
@@ -1419,7 +2040,7 @@
                     });
                 }
             });
-            
+
             // Update window.cardData to match current category assignments
             window.cardData = [];
             document.querySelectorAll('.image-card').forEach(card => {
@@ -1427,7 +2048,7 @@
                 const category = card.dataset.category;
                 const description = card.querySelector('.description')?.textContent || '';
                 const thumbnail = card.querySelector('.thumbnail')?.src || '';
-                
+
                 if (filename) {
                     window.cardData.push({
                         filename: filename,
@@ -1438,37 +2059,37 @@
                     });
                 }
             });
-            
+
             console.log('Data synced with DOM');
         };
-        
+
         // Helper function for category interaction - revised for select-based UI
         window.reattachCategoryClickHandlers = function() {
             console.log("This function is no longer needed with select-based UI");
             // With the select-based UI, event handlers are attached directly when the select elements are created
             // This function is kept for compatibility with code that might call it
-            
+
             // Let's rebuild the category selects instead
             window.rebuildCategorySelects();
         };
-        
+
         // Initialize the data for our app
         // Function to track scroll position and show/hide back to top button
         function setupScrollTracking() {
             const backToTopButton = document.getElementById('back-to-top');
             const summarySection = document.querySelector('.directory-structure');
-            
+
             if (!backToTopButton || !summarySection) return;
-            
+
             // Get the position of the summary section
             function getSummaryPosition() {
                 return summarySection.getBoundingClientRect();
             }
-            
+
             // Check if we should show the back-to-top button
             function checkScrollPosition() {
                 const summaryRect = getSummaryPosition();
-                
+
                 // Show button when summary is no longer visible (scrolled past)
                 if (summaryRect.bottom < 0) {
                     backToTopButton.classList.add('visible');
@@ -1476,55 +2097,69 @@
                     backToTopButton.classList.remove('visible');
                 }
             }
-            
+
             // Set up scroll listener
             window.addEventListener('scroll', checkScrollPosition);
-            
+
             // Initial check
             checkScrollPosition();
-            
+
             // Handle click on back-to-top button
             backToTopButton.addEventListener('click', function() {
                 // Scroll to the summary section
                 summarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         }
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Initialize window.categoriesData if not defined
                 window.categoriesData = window.categoriesData || categoriesData || [];
-                
+
                 const categoriesContainer = document.querySelector('.categories-container');
-                
+
                 // Set up scroll tracking for back-to-top button
                 setupScrollTracking();
-                
+
                 // Create category containers from data
                 categoriesContainer.innerHTML = '';
-                
+
                 // Function to create a category container
                 function createCategoryContainer(categoryData) {
                     const container = document.createElement('div');
-                    container.className = 'category-container';
+                    // Add special class for Trash container
+                    container.className = categoryData.name === 'Trash' ? 
+                        'category-container trash-category' : 'category-container';
                     container.dataset.category = categoryData.name;
                     container.dataset.totalImages = categoryData.count;
                     container.dataset.visibleImages = categoryData.count; // Show all images
-                    
+
                     const header = document.createElement('div');
                     header.className = 'category-header';
-                    
+
                     const title = document.createElement('h2');
                     title.className = 'category-title';
-                    
+
                     // Create title text span to allow for inline editing
                     const titleText = document.createElement('span');
                     titleText.className = 'category-title-text';
                     titleText.textContent = categoryData.name;
-                    
+
                     // Add elements to title
                     title.appendChild(titleText);
                     
+                    // Add badge for Trash category
+                    if (categoryData.name === 'Trash') {
+                        // Add trash badge
+                        const badge = document.createElement('span');
+                        badge.className = 'category-title-trash-badge';
+                        badge.textContent = 'trash';
+                        title.appendChild(badge);
+                        
+                        // Change title text from "Trash" to "Deleted Items"
+                        titleText.textContent = 'Deleted Items';
+                    }
+
                     // Only add icons if NOT Trash category
                     if (categoryData.name !== 'Trash') {
                         // Create edit icon
@@ -1532,60 +2167,64 @@
                         editIcon.className = 'edit-category-icon';
                         editIcon.innerHTML = '✏️';
                         editIcon.title = 'Edit category name';
-                        
+
                         // Add event listener for edit icon
                         editIcon.addEventListener('click', function() {
                             startCategoryEdit(container, titleText);
                         });
-                        
-                        // Create trash all icon 
+
+                        // Create trash all icon
                         const trashAllIcon = document.createElement('button');
                         trashAllIcon.className = 'trash-all-category-icon';
                         trashAllIcon.innerHTML = '🗑️';
                         trashAllIcon.title = 'Move all images to Trash';
-                        
+
                         // Add event listener for trash all icon
                         trashAllIcon.addEventListener('click', function() {
                             if (confirm(`Are you sure you want to move all images from "${categoryData.name}" to Trash?`)) {
                                 moveAllToTrash(categoryData.name);
                             }
                         });
-                        
+
                         title.appendChild(editIcon);
                         title.appendChild(trashAllIcon);
                     }
-                    
+
                     const count = document.createElement('span');
                     count.className = 'category-count';
                     count.textContent = categoryData.count;
-                    
+
                     const imagesContainer = document.createElement('div');
                     imagesContainer.className = 'category-images';
-                    
+
                     header.appendChild(title);
                     header.appendChild(count);
                     container.appendChild(header);
                     container.appendChild(imagesContainer);
-                    
-                    
+
+                    // Apply visual weight based on the count
+                    if (categoryData.name !== 'Trash') {
+                        updateCategoryVisualWeight(container, categoryData.count);
+                    }
+
                     return container;
                 }
-                
+
                 // Make sure window.categoriesData is defined
                 window.categoriesData = window.categoriesData || [];
-                
+
                 // Create all category containers - sort alphabetically first, but keep Trash at the end
                 const sortedCategoriesData = [...window.categoriesData].filter(cat => cat && cat.name && cat.name !== 'Trash')
                     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-                
+
                 // Check if Trash category exists in the data
                 const trashCategory = window.categoriesData.find(cat => cat && cat.name === 'Trash');
-                
+
                 // Add all normal categories first
                 sortedCategoriesData.forEach(categoryData => {
                     categoriesContainer.appendChild(createCategoryContainer(categoryData));
                 });
-                
+
                 // Create Trash category if it doesn't exist, or add it last if it does
                 if (trashCategory) {
                     categoriesContainer.appendChild(createCategoryContainer(trashCategory));
@@ -1595,23 +2234,23 @@
                         name: 'Trash',
                         count: 0
                     };
-                    
+
                     // Add to categoriesData (ensure it's initialized)
                     if (!window.categoriesData) {
                         window.categoriesData = [];
                     }
                     window.categoriesData.push(trashData);
-                    
+
                     // Create and append the Trash container
                     categoriesContainer.appendChild(createCategoryContainer(trashData));
                 }
-                
+
                 // Populate category containers with cards
                 console.log("Building card elements...");
-                
+
                 // Add cards to their respective category containers
                 const categorizedCards = {};
-                
+
                 // First organize cards by category
                 cardData.forEach(data => {
                     if (!categorizedCards[data.category]) {
@@ -1619,13 +2258,13 @@
                     }
                     categorizedCards[data.category].push(data);
                 });
-                
+
                 // Then add cards to their respective containers, with hiding logic
                 for (const category in categorizedCards) {
                     const cards = categorizedCards[category];
                     const categoryContainer = document.querySelector('.category-container[data-category="' + category + '"] .category-images');
                     const visibleCount = parseInt(document.querySelector('.category-container[data-category="' + category + '"]').dataset.visibleImages);
-                    
+
                     if (categoryContainer) {
                         cards.forEach((data) => {
                             const card = createCard(data);
@@ -1633,49 +2272,178 @@
                         });
                     }
                 }
-                
+
                 console.log("Categories populated successfully");
-                
+
                 // Set up click events for image previews
                 document.querySelectorAll('.thumbnail').forEach(thumb => {
                     thumb.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        
+
                         // Show the preview overlay with this image source
                         const imgSrc = this.src;
                         const imgAlt = this.alt || 'Image preview';
                         window.showPreview(imgSrc, imgAlt);
                     });
                 });
-                
+
                 // Instead of messing with click handlers, just make sure all
                 // select dropdowns are properly populated
                 window.rebuildCategorySelects();
-                
-                // Close overlay only when background is clicked, not elements inside
+
+                // Close overlay when clicked anywhere in the background
                 document.getElementById('preview-overlay').addEventListener('click', function(e) {
-                    // Only close if the click is directly on the overlay background (not on child elements)
+                    // Close when clicking on the overlay background
+                    // This will close the preview when clicked outside the image or navigation controls
                     if (e.target === this) {
                         this.style.display = 'none';
                     }
                 });
-                
-                // Prevent clicks on the preview image from closing the overlay
-                document.getElementById('preview-image').addEventListener('click', function(e) {
-                    e.stopPropagation();
+
+                // Prevent clicks on navigation arrows from closing the overlay
+                // But allow clicks on the image to close it
+                const stopPropagationElements = [
+                    'preview-nav-left',
+                    'preview-nav-right',
+                    'preview-content'
+                ];
+
+                stopPropagationElements.forEach(function(elementId) {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                        });
+                    }
+                });
+
+                // Make clicking on the image itself close the preview
+                document.getElementById('preview-image').addEventListener('click', function() {
+                    document.getElementById('preview-overlay').style.display = 'none';
+                });
+
+                // Make sure the X close button closes the overlay
+                document.getElementById('preview-close').addEventListener('click', function() {
+                    document.getElementById('preview-overlay').style.display = 'none';
                 });
                 
+                // Set up preview action buttons
+                document.getElementById('preview-trash').addEventListener('click', function() {
+                    // Check if we have a current image card
+                    if (!window.currentPreviewCard) return;
+                    
+                    const currentCategory = window.currentPreviewCard.dataset.category;
+                    const imageId = window.currentPreviewCard.dataset.id;
+                    
+                    // Handle differently based on current category
+                    if (currentCategory === 'Trash') {
+                        // If in Trash, restore the image
+                        restoreFromTrash(window.currentPreviewCard);
+                        
+                        // Close the preview
+                        document.getElementById('preview-overlay').style.display = 'none';
+                    } else {
+                        // Otherwise, move to Trash
+                        // Get the category container the image is in
+                        const categoryContainer = document.querySelector(`.category-container[data-category="${currentCategory}"]`);
+                        // Get all images in this category for checking if it's the last one
+                        const allImagesInCategory = Array.from(categoryContainer.querySelectorAll('.image-card'));
+                        
+                        // Get the Trash category container
+                        const trashContainer = document.querySelector(`.category-container[data-category="Trash"]`);
+                        
+                        if (categoryContainer && trashContainer) {
+                            // Store original category for restore
+                            window.currentPreviewCard.dataset.originalCategory = currentCategory;
+                            
+                            // Also store it in the card data
+                            const cardData = window.cardData.find(c => c.filename === imageId);
+                            if (cardData) {
+                                cardData.originalCategory = currentCategory;
+                            }
+                            
+                            // Move the card to Trash category
+                            trashContainer.querySelector('.category-images').appendChild(window.currentPreviewCard);
+                            
+                            // Update the card's category
+                            window.currentPreviewCard.dataset.category = 'Trash';
+                            
+                            // Apply Trash styling to the image
+                            const imageContainer = window.currentPreviewCard.querySelector('.image-container');
+                            if (imageContainer) {
+                                imageContainer.style.height = "120px";
+                                imageContainer.style.opacity = "0.7";
+                                
+                                // Remove trash icon and add restore icon
+                                const trashIcon = imageContainer.querySelector('.trash-icon');
+                                if (trashIcon) {
+                                    trashIcon.remove();
+                                }
+                                
+                                // Add restore icon
+                                const restoreIcon = document.createElement('button');
+                                restoreIcon.className = 'restore-icon';
+                                restoreIcon.innerHTML = '↩️';
+                                restoreIcon.title = 'Restore from Trash';
+                                
+                                // Add click handler to restore from Trash
+                                restoreIcon.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    restoreFromTrash(window.currentPreviewCard);
+                                });
+                                
+                                imageContainer.appendChild(restoreIcon);
+                            }
+                            
+                            // Update card border color to match Trash
+                            const trashColor = '#dc3545'; // Red for Trash
+                            window.currentPreviewCard.style.borderTopColor = trashColor;
+                            
+                            // Find category in card data and update
+                            if (cardData) {
+                                cardData.category = 'Trash';
+                                cardData.cardColor = trashColor;
+                            }
+                            
+                            // Update category counts
+                            updateCategoryCount(currentCategory);
+                            updateCategoryCount('Trash');
+                            
+                            // Close the preview
+                            document.getElementById('preview-overlay').style.display = 'none';
+                            
+                            // Show notification
+                            showNotification("Image moved to Trash");
+                            
+                            // If this was the last image in the category, show the no more images notification
+                            if (allImagesInCategory.length === 1) {
+                                // Show no more images overlay
+                                const noMoreImagesOverlay = document.getElementById('no-more-images');
+                                noMoreImagesOverlay.style.opacity = '1';
+                                noMoreImagesOverlay.style.visibility = 'visible';
+                                
+                                // Hide after 2 seconds
+                                setTimeout(() => {
+                                    noMoreImagesOverlay.style.opacity = '0';
+                                    noMoreImagesOverlay.style.visibility = 'hidden';
+                                }, 2000);
+                            }
+                        }
+                    }
+                });
+
                 // Script generation button
                 document.getElementById('generate-script').addEventListener('click', function() {
                     generateMoveScript();
                 });
-                
+
                 // Close modal when clicking X
                 document.getElementById('close-modal').addEventListener('click', function() {
                     document.getElementById('script-modal').style.display = 'none';
                 });
-                
+
                 // Close modal when clicking outside
                 window.addEventListener('click', function(event) {
                     const modal = document.getElementById('script-modal');
@@ -1683,40 +2451,74 @@
                         modal.style.display = 'none';
                     }
                 });
-                
+
+                // Copy script to clipboard
+                // Download script as file
+                document.getElementById('download-btn').addEventListener('click', function() {
+                    // Create a blob from the script content
+                    const scriptContent = window.generatedScript || document.getElementById('script-content').textContent;
+                    const blob = new Blob([scriptContent], { type: 'text/plain' });
+
+                    // Create a URL for the blob
+                    const url = URL.createObjectURL(blob);
+
+                    // Create a temporary link element for downloading
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = 'organize_images.sh';
+
+                    // Append to the document, click it, and remove it
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    // Release the URL object
+                    URL.revokeObjectURL(url);
+
+                    // Update button text temporarily
+                    const button = this;
+                    const originalText = button.textContent;
+                    button.textContent = 'Downloaded!';
+
+                    // Reset after 2 seconds
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                    }, 2000);
+                });
+
                 // Copy script to clipboard
                 document.getElementById('copy-btn').addEventListener('click', function() {
                     const scriptContent = document.getElementById('script-content');
-                    
+
                     // Create a temporary textarea element to copy from
                     const tempTextArea = document.createElement('textarea');
                     tempTextArea.value = scriptContent.textContent;
                     document.body.appendChild(tempTextArea);
-                    
+
                     // Select and copy
                     tempTextArea.select();
                     document.execCommand('copy');
-                    
+
                     // Remove the temporary element
                     document.body.removeChild(tempTextArea);
-                    
+
                     // Update button text temporarily
                     const button = this;
                     const originalText = button.textContent;
                     button.textContent = 'Copied!';
                     button.style.backgroundColor = '#218838';
-                    
+
                     // Reset after 2 seconds
                     setTimeout(function() {
                         button.textContent = originalText;
                         button.style.backgroundColor = '#28a745';
                     }, 2000);
                 });
-                
+
                 // Initialize drag and drop
                 const containers = Array.from(document.querySelectorAll('.category-images'));
                 console.log('Found ' + containers.length + ' category containers');
-                
+
                 if (containers.length) {
                     // Create the dragula instance with all containers
                     window.drake = dragula(containers, {
@@ -1725,39 +2527,39 @@
                         removeOnSpill: false, /* Don't remove elements when dropped outside of containers */
                         moves: function(el, container, handle) {
                             // Only allow dragging when clicking on the image container
-                            return handle.classList.contains('image-container') || 
+                            return handle.classList.contains('image-container') ||
                                    handle.classList.contains('thumbnail');
                         }
                     });
-                    
+
                     // Add auto-scrolling functionality during drag operations
                     let autoScrollIntervalId = null;
                     const scrollSpeed = 10; // Pixels per frame
                     const scrollThreshold = 150; // Distance from edge to trigger scrolling
-                    
+
                     // Start monitoring for auto-scroll when drag begins
                     drake.on('drag', function(el, source) {
                         startAutoScrollMonitoring();
                     });
-                    
+
                     // Stop auto-scrolling when drag ends
                     drake.on('dragend', function() {
                         stopAutoScrollMonitoring();
                     });
-                    
+
                     function startAutoScrollMonitoring() {
                         // Stop any existing interval to avoid duplicates
                         stopAutoScrollMonitoring();
-                        
+
                         // Set up interval to check mouse position and scroll if needed
                         autoScrollIntervalId = setInterval(function() {
                             const mouseY = window.dragula_mouse_position_y || 0;
                             const viewportHeight = window.innerHeight;
-                            
+
                             // Calculate distance from top and bottom edges
                             const distanceFromTop = mouseY;
                             const distanceFromBottom = viewportHeight - mouseY;
-                            
+
                             if (distanceFromTop < scrollThreshold) {
                                 // Near the top edge - scroll up
                                 window.scrollBy(0, -scrollSpeed * (1 - distanceFromTop/scrollThreshold));
@@ -1767,29 +2569,47 @@
                             }
                         }, 16); // ~60fps
                     }
-                    
+
                     function stopAutoScrollMonitoring() {
                         if (autoScrollIntervalId !== null) {
                             clearInterval(autoScrollIntervalId);
                             autoScrollIntervalId = null;
                         }
                     }
-                    
+
                     // Track mouse position globally for auto-scrolling
                     document.addEventListener('mousemove', function(e) {
                         window.dragula_mouse_position_x = e.clientX;
                         window.dragula_mouse_position_y = e.clientY;
                     });
-                    
+
                     /* Handle when drag is complete */
                     drake.on('drop', function(el, target, source) {
                         if (target !== source) {
                             const sourceCategory = source.parentElement.dataset.category;
                             const targetCategory = target.parentElement.dataset.category;
                             const imageId = el.dataset.id;
-                            
+
                             console.log("Moving image " + imageId + " from " + sourceCategory + " to " + targetCategory);
                             
+                            /* Update card border color to match new category */
+                            const categoryColor = categoryColorMap[targetCategory] || '#3b82f6';
+                            el.style.borderTopColor = categoryColor; // Set the top border color to match the category
+                            
+                            /* Special handling for Trash category */
+                            const imageContainer = el.querySelector('.image-container');
+                            if (imageContainer) {
+                                if (targetCategory === "Trash") {
+                                    // Make images smaller in trash
+                                    imageContainer.style.height = "120px"; // Increased minimum height
+                                    imageContainer.style.opacity = "0.7";
+                                } else {
+                                    // Reset to normal size for other categories
+                                    imageContainer.style.height = "200px";
+                                    imageContainer.style.opacity = "1";
+                                }
+                            }
+
                             /* Update the category display in the card */
                             const categoryElement = el.querySelector('.category');
                             if (categoryElement && targetCategory) {
@@ -1806,19 +2626,19 @@
                                 } else {
                                     /* If select element doesn't exist, recreate the entire category element */
                                     categoryElement.innerHTML = '';
-                                    
+
                                     /* Create a new select dropdown */
                                     const categorySelect = document.createElement('select');
                                     categorySelect.className = 'category-select';
                                     categorySelect.title = 'Select to change category';
-                                    
+
                                     /* Add current category as first option */
                                     const currentOption = document.createElement('option');
                                     currentOption.value = targetCategory;
                                     currentOption.textContent = targetCategory + " (Current)";
                                     currentOption.selected = true;
                                     categorySelect.appendChild(currentOption);
-                                    
+
                                     /* Add other categories (sorted alphabetically) */
                                     const allCatNames = [];
                                     document.querySelectorAll('.category-container').forEach(container => {
@@ -1827,10 +2647,10 @@
                                             allCatNames.push(name);
                                         }
                                     });
-                                    
+
                                     // Sort alphabetically
                                     allCatNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-                                    
+
                                     // Add each category option
                                     allCatNames.forEach(catName => {
                                         const option = document.createElement('option');
@@ -1838,62 +2658,80 @@
                                         option.textContent = catName;
                                         categorySelect.appendChild(option);
                                     });
-                                    
+
                                     /* Add event listener to handle future changes */
                                     categorySelect.addEventListener('change', function(e) {
                                         const newCategory = this.value;
                                         const cardElement = this.closest('.image-card');
                                         const imageId = cardElement.dataset.id;
-                                        
+
                                         /* Find target container */
                                         const targetContainer = document.querySelector('.category-container[data-category="' + newCategory + '"] .category-images');
                                         if (targetContainer) {
                                             /* Move card to new category */
                                             targetContainer.appendChild(cardElement);
-                                            
+
                                             /* Update data attribute */
                                             cardElement.dataset.category = newCategory;
                                             
+                                            /* Update card border color to match new category */
+                                            const categoryColor = categoryColorMap[newCategory] || '#3b82f6';
+                                            cardElement.style.borderTopColor = categoryColor; // Set the top border color to match the category
+                                            
+                                            /* Special handling for Trash category */
+                                            const imageContainer = cardElement.querySelector('.image-container');
+                                            if (imageContainer) {
+                                                if (newCategory === "Trash") {
+                                                    // Make images smaller in trash
+                                                    imageContainer.style.height = "120px"; // Increased minimum height
+                                                    imageContainer.style.opacity = "0.7";
+                                                } else {
+                                                    // Reset to normal size for other categories
+                                                    imageContainer.style.height = "200px";
+                                                    imageContainer.style.opacity = "1";
+                                                }
+                                            }
+
                                             /* Update counts */
                                             window.updateCategoryCounts();
-                                            
+
                                             /* Show notification */
                                             const notification = document.getElementById('notification');
                                             notification.style.display = 'block';
                                             notification.textContent = "Moved \"" + imageId + "\" to " + newCategory;
-                                            
+
                                             /* Hide notification after 2 seconds */
                                             setTimeout(function() {
                                                 notification.style.display = 'none';
                                             }, 2000);
-                                            
+
                                             /* Rebuild the select options */
                                             setTimeout(function() {
                                                 window.rebuildCategorySelects();
                                             }, 100);
                                         }
                                     });
-                                    
+
                                     categoryElement.appendChild(categorySelect);
                                 }
-                                
+
                                 /* Update data attribute on the element for consistency */
                                 el.dataset.category = targetCategory;
-                                
+
                                 /* Update the category counts and sync data structures */
                                 setTimeout(function() {
                                     window.updateCategoryCounts();
                                     window.syncCategoryData();
-                                    
+
                                     // Make sure all categories have click handlers
                                     window.reattachCategoryClickHandlers();
                                 }, 100);
-                                
+
                                 /* Show success notification */
                                 const notification = document.getElementById('notification');
                                 notification.style.display = 'block';
                                 notification.textContent = "Moved \"" + imageId + "\" to " + targetCategory;
-                                
+
                                 /* Hide notification after 2 seconds */
                                 setTimeout(function() {
                                     notification.style.display = 'none';
@@ -1902,37 +2740,112 @@
                         }
                     });
                 }
-                
+
                 // Update category counts and sync data initially
                 window.updateCategoryCounts();
                 window.syncCategoryData();
-                
+
                 // Initialize all the select dropdowns
                 window.rebuildCategorySelects();
+
+                // Define category colors
+                const categoryColors = [
+                    '#3b82f6', // Blue
+                    '#10b981', // Green
+                    '#f59e0b', // Amber
+                    '#8b5cf6', // Purple
+                    '#ec4899', // Pink
+                    '#14b8a6'  // Teal
+                ];
+                
+                // Get all unique category names
+                const allCategoryNames = [];
+                document.querySelectorAll('.category-container').forEach(container => {
+                    const categoryName = container.dataset.category;
+                    if (categoryName && !allCategoryNames.includes(categoryName) && categoryName !== 'Trash') {
+                        allCategoryNames.push(categoryName);
+                    }
+                });
+                
+                // Sort category names alphabetically to ensure consistent ordering
+                allCategoryNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                
+                // If "Trash" exists, add it at the end
+                if (document.querySelector('.category-container[data-category="Trash"]')) {
+                    allCategoryNames.push('Trash');
+                }
+                
+                // Create a mapping of category names to colors
+                const categoryColorMap = {};
+                allCategoryNames.forEach((category, index) => {
+                    if (category === 'Trash') {
+                        categoryColorMap[category] = '#dc3545'; // Red for Trash
+                    } else {
+                        categoryColorMap[category] = categoryColors[index % categoryColors.length];
+                    }
+                });
+                
+                // Apply colors to the category list and main category sections
+                document.querySelectorAll('.category-stat-item').forEach(item => {
+                    const name = item.querySelector('.category-stat-name').textContent.trim();
+                    const color = categoryColorMap[name] || '#3b82f6'; // Default to blue if not found
+                    
+                    // Apply color to category stat item
+                    item.style.borderLeftColor = color;
+                    item.querySelector('.category-stat-name').style.color = color;
+                    item.querySelector('.category-stat-count').style.backgroundColor = color;
+                });
+                
+                // Apply colors to main category sections
+                document.querySelectorAll('.category-container').forEach(container => {
+                    const name = container.dataset.category;
+                    const color = categoryColorMap[name] || '#3b82f6'; // Default to blue if not found
+                    
+                    // Apply color to category container top border
+                    container.style.borderTopColor = color;
+                    
+                    // Apply color to category title and count
+                    container.querySelector('.category-title').style.color = color;
+                    container.querySelector('.category-count').style.backgroundColor = color;
+                    container.querySelector('.category-header').style.borderBottomColor = `${color}33`; // 20% opacity
+                    
+                    // Apply top border color to all image cards in this category
+                    container.querySelectorAll('.image-card').forEach(card => {
+                        card.style.borderTopColor = color;
+                        
+                        // Make images in Trash category much smaller
+                        if (name === "Trash") {
+                            // Add trash class to container for special styling
+                            container.classList.add('trash-category');
+                            
+                            // Make the image container smaller
+                            const imageContainer = card.querySelector('.image-container');
+                            if (imageContainer) {
+                                imageContainer.style.height = "120px"; // Increased minimum height
+                                imageContainer.style.opacity = "0.7"; // Slightly faded
+                            }
+                        }
+                    });
+                });
                 
                 // Add click handlers for category stats items to enable scrolling to categories
-                // Add category click handlers to the stats items (sort alphabetically first)
-                const statItems = Array.from(document.querySelectorAll('.category-stat-item'));
-                statItems.sort((a, b) => {
-                    const nameA = a.querySelector('.category-stat-name').textContent.toLowerCase();
-                    const nameB = b.querySelector('.category-stat-name').textContent.toLowerCase();
-                    return nameA.localeCompare(nameB);
-                });
+                const statItems = document.querySelectorAll('.category-stat-item');
                 statItems.forEach(statItem => {
                     statItem.addEventListener('click', function() {
                         const categoryName = this.querySelector('.category-stat-name').textContent.trim();
                         const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
-                        
+
                         if (categoryContainer) {
                             // Scroll the category container into view with a smooth animation
-                            categoryContainer.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'start' 
+                            categoryContainer.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
                             });
-                            
-                            // Add a highlight effect to make it obvious which category was selected
-                            categoryContainer.style.backgroundColor = '#e6f2ff';
-                            
+
+                            // Add a highlight effect that matches the category color
+                            const color = categoryColorMap[categoryName] || '#3b82f6';
+                            categoryContainer.style.backgroundColor = `${color}10`; // 10% opacity
+
                             // Remove the highlight after 1.5 seconds
                             setTimeout(() => {
                                 categoryContainer.style.backgroundColor = '';
@@ -1940,24 +2853,24 @@
                         }
                     });
                 });
-                
+
                 // Set up the add category button
                 document.getElementById('add-category').addEventListener('click', function() {
                     document.getElementById('category-modal').style.display = 'block';
                     document.getElementById('category-name').value = '';
                     document.getElementById('category-error').style.display = 'none';
                 });
-                
+
                 // Close the category modal when clicking X
                 document.getElementById('close-category-modal').addEventListener('click', function() {
                     document.getElementById('category-modal').style.display = 'none';
                 });
-                
+
                 // Close category modal when clicking cancel button
                 document.getElementById('cancel-category').addEventListener('click', function() {
                     document.getElementById('category-modal').style.display = 'none';
                 });
-                
+
                 // Close category modal when clicking outside
                 window.addEventListener('click', function(event) {
                     const modal = document.getElementById('category-modal');
@@ -1965,34 +2878,34 @@
                         modal.style.display = 'none';
                     }
                 });
-                
+
                 // Handle creating a new category
                 document.getElementById('create-category').addEventListener('click', createNewCategory);
-                
+
                 // Allow Enter key to submit when input is focused
                 document.getElementById('category-name').addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         createNewCategory();
                     }
                 });
-                
+
             } catch (error) {
                 console.error("Error initializing views:", error);
             }
         });
-        
+
         // Function to show category dropdown options - this is kept for compatibility but is not used with the select-based UI
         // The select dropdown handles category changes directly via its change event
         window.showCategoryOptions = function(categoryElement) {
             console.log("Category clicked - Note: This function is deprecated in the select-based UI");
-            
+
             // The new UI uses <select> elements instead of custom dropdowns
             // Find and focus the select element to open the dropdown
             const selectElement = categoryElement.querySelector('.category-select');
             if (selectElement) {
                 // Focus and click to open the dropdown in most browsers
                 selectElement.focus();
-                
+
                 try {
                     // Try to simulate a mouse click to open the dropdown
                     const event = new MouseEvent('mousedown', {
@@ -2004,61 +2917,61 @@
                 } catch (e) {
                     console.log("Could not simulate mousedown event, using focus instead");
                 }
-                
+
                 return;
             }
-            
+
             console.error("Select element not found in category element");
-            
+
             // Rebuild all select dropdowns to ensure proper state
             setTimeout(function() {
                 window.rebuildCategorySelects();
             }, 100);
         };
-        
+
         // Function to create a new category
         function createNewCategory() {
             const categoryNameInput = document.getElementById('category-name');
             const newCategoryName = categoryNameInput.value.trim();
             const errorElement = document.getElementById('category-error');
-            
+
             // Validate category name - only allow letters, numbers, and underscores
             const validNameRegex = /^[a-zA-Z0-9_]+$/;
-            
+
             if (!newCategoryName) {
                 errorElement.textContent = "Category name cannot be empty.";
                 errorElement.style.display = 'block';
                 return;
             }
-            
+
             if (!validNameRegex.test(newCategoryName)) {
                 errorElement.textContent = "Category name can only contain letters, numbers, and underscores.";
                 errorElement.style.display = 'block';
                 return;
             }
-            
+
             // Check if trying to create "Trash" category manually
             if (newCategoryName === "Trash") {
                 errorElement.textContent = "'Trash' is a reserved category name.";
                 errorElement.style.display = 'block';
                 return;
             }
-            
+
             // Check if category already exists
             const existingCategories = [];
             document.querySelectorAll('.category-container').forEach(container => {
                 existingCategories.push(container.dataset.category);
             });
-            
+
             if (existingCategories.includes(newCategoryName)) {
                 errorElement.textContent = "A category with this name already exists.";
                 errorElement.style.display = 'block';
                 return;
             }
-            
+
             // Create a new category container
             const categoriesContainer = document.querySelector('.categories-container');
-            
+
             // Function to create a category container (copied from earlier)
             function createCategoryContainer(name) {
                 const container = document.createElement('div');
@@ -2066,33 +2979,33 @@
                 container.dataset.category = name;
                 container.dataset.totalImages = 0;
                 container.dataset.visibleImages = 0; // Will be updated automatically
-                
+
                 const header = document.createElement('div');
                 header.className = 'category-header';
-                
+
                 const title = document.createElement('h2');
                 title.className = 'category-title';
                 title.textContent = name;
-                
+
                 const count = document.createElement('span');
                 count.className = 'category-count';
                 count.textContent = '0';
-                
+
                 const imagesContainer = document.createElement('div');
                 imagesContainer.className = 'category-images';
-                
+
                 header.appendChild(title);
                 header.appendChild(count);
                 container.appendChild(header);
                 container.appendChild(imagesContainer);
-                
-                
+
+
                 return container;
             }
-            
+
             // Add the new category container
             categoriesContainer.appendChild(createCategoryContainer(newCategoryName));
-            
+
             // Update the category stats in the summary - insert in alphabetical order
             const categorySummary = document.querySelector('.category-stats');
             if (categorySummary) {
@@ -2106,18 +3019,18 @@
                 const newCategoryIndex = existingCategoryNames.indexOf(newCategoryName);
                 const newStatItem = document.createElement('div');
                 newStatItem.className = 'category-stat-item';
-                
+
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'category-stat-name';
                 nameSpan.textContent = newCategoryName;
-                
+
                 const countSpan = document.createElement('span');
                 countSpan.className = 'category-stat-count';
                 countSpan.textContent = '0';
-                
+
                 newStatItem.appendChild(nameSpan);
                 newStatItem.appendChild(countSpan);
-                
+
                 // Insert in the correct alphabetical position
                 if (newCategoryIndex === existingCategoryNames.length - 1) {
                     // Last element, just append
@@ -2142,57 +3055,57 @@
                     }
                 }
             }
-            
+
             // Close the modal
             document.getElementById('category-modal').style.display = 'none';
-            
+
             // Add the new category to internal data
             window.categoriesData.push({
                 name: newCategoryName,
                 count: 0
             });
-            
+
             // Update dragula to include the new container
             const newContainer = document.querySelector(`.category-container[data-category="${newCategoryName}"] .category-images`);
             if (newContainer && window.drake) {
                 window.drake.containers.push(newContainer);
             }
-            
+
             // Rebuild all category selects to include the new category
             window.rebuildCategorySelects();
-            
+
             // Show notification
             const notification = document.getElementById('notification');
             notification.style.display = 'block';
             notification.textContent = `New category "${newCategoryName}" created`;
-            
+
             // Hide notification after 2 seconds
             setTimeout(function() {
                 notification.style.display = 'none';
             }, 2000);
         }
-        
+
         // Function to start editing a category name
         function startCategoryEdit(container, titleTextElement) {
             const currentName = container.dataset.category;
             const originalName = currentName; // Store for potential cancellation
-            
+
             // Create an input element for editing
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'category-edit-input';
             input.value = currentName;
             input.dataset.originalName = originalName;
-            
+
             // Replace the title text with the input
             const titleElement = titleTextElement.parentElement;
             titleElement.insertBefore(input, titleTextElement);
             titleTextElement.style.display = 'none';
-            
+
             // Focus the input
             input.focus();
             input.select();
-            
+
             // Handle keydown events for Enter and Escape
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
@@ -2201,40 +3114,40 @@
                     cancelCategoryEdit(input, titleTextElement);
                 }
             });
-            
+
             // Handle blur event to save changes when clicking outside
             input.addEventListener('blur', function() {
                 confirmCategoryEdit(container, input, titleTextElement);
             });
         }
-        
+
         // Function to confirm category name edit
         function confirmCategoryEdit(container, input, titleTextElement) {
             const originalName = input.dataset.originalName;
             const newName = input.value.trim();
-            
+
             // Remove input and show text element
             input.remove();
             titleTextElement.style.display = 'inline';
-            
+
             // Validate the new name
             if (!newName) {
                 // Empty name, revert to original
                 showNotification("Category name cannot be empty");
                 return;
             }
-            
+
             if (newName === originalName) {
                 // No change, just exit
                 return;
             }
-            
+
             // Check if the new name is the reserved "Trash" name
             if (newName === "Trash") {
                 showNotification("'Trash' is a reserved category name");
                 return;
             }
-            
+
             // Check if name already exists
             const existingCategories = [];
             let targetContainer = null;
@@ -2247,63 +3160,90 @@
                     }
                 }
             });
-            
+
             if (existingCategories.includes(newName)) {
                 // Category with this name already exists
                 // Move files from this category to the existing one and remove this category
                 mergeCategories(container, targetContainer, originalName, newName);
                 return;
             }
-            
+
             // Valid new name, update category name
             updateCategoryName(container, originalName, newName);
         }
-        
+
         // Function to cancel category name edit
         function cancelCategoryEdit(input, titleTextElement) {
             input.remove();
             titleTextElement.style.display = 'inline';
         }
-        
+
         // Function to move a card to the Trash category
         function moveToTrash(card) {
             const imageId = card.dataset.id;
             const sourceCategory = card.dataset.category;
             const trashCategoryName = 'Trash';
+
+            // Store the original category for potential restore operation
+            card.dataset.originalCategory = sourceCategory;
             
+            // Also store it in the card data
+            const cardData = window.cardData.find(c => c.filename === imageId);
+            if (cardData) {
+                cardData.originalCategory = sourceCategory;
+            }
+
             // Check if Trash category exists, create it if not
             let trashContainer = document.querySelector(`.category-container[data-category="${trashCategoryName}"]`);
-            
+
             if (!trashContainer) {
                 // Create the Trash category
                 trashContainer = createTrashCategory();
             }
-            
+
             // Get the trash images container
             const trashImagesContainer = trashContainer.querySelector('.category-images');
-            
+
             // Update the card's category
             card.dataset.category = trashCategoryName;
-            
+
             // Remove the trash icon since it's now in Trash
             const trashIcon = card.querySelector('.trash-icon');
             if (trashIcon) {
                 trashIcon.remove();
             }
             
+            // Add restore icon
+            const imageContainer = card.querySelector('.image-container');
+            if (imageContainer) {
+                const restoreIcon = document.createElement('button');
+                restoreIcon.className = 'restore-icon';
+                restoreIcon.innerHTML = '↩️';
+                restoreIcon.title = 'Restore from Trash';
+                
+                // Add click handler to restore from Trash
+                restoreIcon.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    restoreFromTrash(card);
+                });
+                
+                imageContainer.appendChild(restoreIcon);
+            }
+
             // Update the select dropdown
             const select = card.querySelector('.category-select');
             if (select) {
                 // Clear existing options
                 select.innerHTML = '';
-                
+
                 // Add Trash as "Current"
                 const currentOption = document.createElement('option');
                 currentOption.value = trashCategoryName;
                 currentOption.textContent = trashCategoryName + " (Current)";
                 currentOption.selected = true;
                 select.appendChild(currentOption);
-                
+
                 // Get all categories to add the rest
                 const allCategories = [];
                 document.querySelectorAll('.category-container').forEach(container => {
@@ -2312,7 +3252,7 @@
                         allCategories.push(catName);
                     }
                 });
-                
+
                 // Add all other categories (sorted alphabetically, but with Trash at the end)
                 allCategories.sort((a, b) => {
                     if (a === 'Trash') return 1; // Keep Trash at the end
@@ -2328,103 +3268,246 @@
                     }
                 });
             }
-            
+
             // Move card to Trash category
             trashImagesContainer.appendChild(card);
-            
+
             // Update counts
             window.updateCategoryCounts();
-            
+
             // Show notification
             showNotification(`Moved "${imageId}" to Trash`);
         }
-        
+
         // Function to move all items from a category to Trash
         function moveAllToTrash(categoryName) {
             // Don't allow moving Trash category
             if (categoryName === 'Trash') {
                 return;
             }
-            
+
             // Find the category container
             const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
             if (!categoryContainer) {
                 return;
             }
-            
+
             // Find all cards in this category
             const cards = categoryContainer.querySelectorAll('.image-card');
             if (!cards.length) {
                 showNotification(`No images to move from "${categoryName}" to Trash`);
                 return;
             }
-            
+
             // Convert NodeList to Array to avoid issues when moving elements
             const cardsArray = Array.from(cards);
-            
+
             // Move each card to Trash
             cardsArray.forEach(card => {
                 moveToTrash(card);
             });
-            
+
             // Show notification
             showNotification(`Moved all images (${cardsArray.length}) from "${categoryName}" to Trash`);
+        }
+
+        // Function to restore an image from Trash to its original category
+        function restoreFromTrash(card) {
+            const imageId = card.dataset.id;
+            const currentCategory = card.dataset.category; // Should be 'Trash'
+            
+            // Get the original category from the data attribute or use 'Uncategorized' as fallback
+            let targetCategory = card.dataset.originalCategory || 'Uncategorized';
+            
+            // Check if the target category exists, create it if not
+            let targetContainer = document.querySelector(`.category-container[data-category="${targetCategory}"]`);
+            
+            if (!targetContainer) {
+                // If original category no longer exists, create a new one called "Restored"
+                targetCategory = 'Restored';
+                targetContainer = document.querySelector(`.category-container[data-category="Restored"]`);
+                
+                if (!targetContainer) {
+                    // Create a new category container
+                    targetContainer = createCategoryContainer({
+                        name: 'Restored',
+                        count: 0
+                    });
+                    
+                    // Add it to the categories container but before the Trash category
+                    const categoriesContainer = document.querySelector('.categories-container');
+                    const trashContainer = document.querySelector(`.category-container[data-category="Trash"]`);
+                    categoriesContainer.insertBefore(targetContainer, trashContainer);
+                    
+                    // Add to categoriesData
+                    if (!window.categoriesData) {
+                        window.categoriesData = [];
+                    }
+                    window.categoriesData.push({
+                        name: 'Restored',
+                        count: 0
+                    });
+                    
+                    // Apply colors and setup
+                    applyColorsToElements();
+                }
+            }
+            
+            // Get the category image containers
+            const targetImagesContainer = targetContainer.querySelector('.category-images');
+            
+            // Remove the restore icon
+            const restoreIcon = card.querySelector('.restore-icon');
+            if (restoreIcon) {
+                restoreIcon.remove();
+            }
+            
+            // Update the card's category
+            card.dataset.category = targetCategory;
+            
+            // Add trash icon back
+            const imageContainer = card.querySelector('.image-container');
+            if (imageContainer) {
+                // Reset any Trash-specific styling
+                imageContainer.style.height = ''; // Remove fixed height
+                imageContainer.style.opacity = ''; // Reset opacity
+                
+                // Add trash icon
+                const trashIcon = document.createElement('button');
+                trashIcon.className = 'trash-icon';
+                trashIcon.innerHTML = '🗑️';
+                trashIcon.title = 'Move to Trash';
+                
+                // Add click handler to move to Trash
+                trashIcon.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    moveToTrash(card);
+                });
+                
+                imageContainer.appendChild(trashIcon);
+            }
+            
+            // Update the select dropdown
+            const select = card.querySelector('.category-select');
+            if (select) {
+                // Clear existing options
+                select.innerHTML = '';
+                
+                // Add current category as selected
+                const currentOption = document.createElement('option');
+                currentOption.value = targetCategory;
+                currentOption.textContent = targetCategory + " (Current)";
+                currentOption.selected = true;
+                select.appendChild(currentOption);
+                
+                // Get all categories to add the rest
+                const allCategories = [];
+                document.querySelectorAll('.category-container').forEach(container => {
+                    const catName = container.dataset.category;
+                    if (catName && !allCategories.includes(catName)) {
+                        allCategories.push(catName);
+                    }
+                });
+                
+                // Add all other categories
+                allCategories.sort((a, b) => {
+                    if (a === 'Trash') return 1; // Keep Trash at the end
+                    if (b === 'Trash') return -1; // Keep Trash at the end
+                    return a.toLowerCase().localeCompare(b.toLowerCase());
+                }).forEach(catName => {
+                    if (catName !== targetCategory) {
+                        const option = document.createElement('option');
+                        option.value = catName;
+                        option.textContent = catName;
+                        select.appendChild(option);
+                    }
+                });
+            }
+            
+            // Update card border color to match target category
+            const categoryColorMap = window.categoryColorMap || {};
+            const categoryColor = categoryColorMap[targetCategory] || '#3b82f6';
+            card.style.borderTopColor = categoryColor;
+            
+            // Update card data
+            const cardData = window.cardData.find(c => c.filename === imageId);
+            if (cardData) {
+                cardData.category = targetCategory;
+                cardData.cardColor = categoryColor;
+            }
+            
+            // Move the card to the target container
+            targetImagesContainer.appendChild(card);
+            
+            // Update category counts
+            updateCategoryCount(currentCategory); // Update Trash count
+            updateCategoryCount(targetCategory); // Update target category count
+            
+            // Show notification
+            showNotification(`Image restored to ${targetCategory}`);
         }
         
         // Function to create the Trash category
         function createTrashCategory() {
             const categoriesContainer = document.querySelector('.categories-container');
-            
+
             // Create the category container
             const container = document.createElement('div');
             container.className = 'category-container';
             container.dataset.category = 'Trash';
             container.dataset.totalImages = 0;
             container.dataset.visibleImages = 0;
-            
+
             // Create the header
             const header = document.createElement('div');
             header.className = 'category-header';
-            
+
             // Create the title
             const title = document.createElement('h2');
             title.className = 'category-title';
-            
+
             // Create title text
             const titleText = document.createElement('span');
             titleText.className = 'category-title-text';
-            titleText.textContent = 'Trash';
+            titleText.textContent = 'Deleted Items';  // Change to "Deleted Items" instead of "Trash"
             
+            // Add trash badge
+            const badge = document.createElement('span');
+            badge.className = 'category-title-trash-badge';
+            badge.textContent = 'trash';
+
             // No edit icon for Trash category as it's special
-            
-            // Add title text to title
+
+            // Add title text and badge to title
             title.appendChild(titleText);
-            
+            title.appendChild(badge);
+
             // Create count
             const count = document.createElement('span');
             count.className = 'category-count';
             count.textContent = '0';
-            
+
             // Create images container
             const imagesContainer = document.createElement('div');
             imagesContainer.className = 'category-images';
-            
+
             // Add elements to header
             header.appendChild(title);
             header.appendChild(count);
-            
+
             // Add header and images container to container
             container.appendChild(header);
             container.appendChild(imagesContainer);
-            
+
             // Add to categories container - at the end
             categoriesContainer.appendChild(container);
-            
+
             // Add to dragula containers
             if (window.drake) {
                 window.drake.containers.push(imagesContainer);
             }
-            
+
             // Add to categoriesData (ensure it's initialized)
             if (!window.categoriesData) {
                 window.categoriesData = [];
@@ -2433,41 +3516,50 @@
                 name: 'Trash',
                 count: 0
             });
-            
+
             // Add to summary section
             const categorySummary = document.querySelector('.category-stats');
             if (categorySummary) {
                 const newStatItem = document.createElement('div');
                 newStatItem.className = 'category-stat-item trash-category-stat';
-                
+
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'category-stat-name';
                 nameSpan.textContent = 'Trash';
                 
+                // Add trash badge
+                const badge = document.createElement('span');
+                badge.className = 'category-title-trash-badge';
+                badge.textContent = 'trash';
+                badge.style.marginLeft = '5px';
+                badge.style.fontSize = '8px';
+                badge.style.top = '-3px';
+                nameSpan.appendChild(badge);
+
                 const countSpan = document.createElement('span');
                 countSpan.className = 'category-stat-count';
                 countSpan.textContent = '0';
-                
+
                 newStatItem.appendChild(nameSpan);
                 newStatItem.appendChild(countSpan);
-                
+
                 // Add to summary (at the end)
                 categorySummary.appendChild(newStatItem);
-                
+
                 // Add click handler
                 newStatItem.addEventListener('click', function() {
                     const categoryContainer = document.querySelector(`.category-container[data-category="Trash"]`);
-                    
+
                     if (categoryContainer) {
                         // Scroll the category container into view with a smooth animation
-                        categoryContainer.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'start' 
+                        categoryContainer.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
                         });
-                        
+
                         // Add a highlight effect to make it obvious which category was selected
                         categoryContainer.style.backgroundColor = '#e6f2ff';
-                        
+
                         // Remove the highlight after 1.5 seconds
                         setTimeout(() => {
                             categoryContainer.style.backgroundColor = '';
@@ -2475,46 +3567,119 @@
                     }
                 });
             }
-            
+
             // Update all selects
             window.rebuildCategorySelects();
-            
+
             return container;
         }
-        
+
         // Function to show a notification
         function showNotification(message) {
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.style.display = 'block';
-            
+
             // Hide after 2 seconds
             setTimeout(function() {
                 notification.style.display = 'none';
             }, 2000);
         }
         
+        // Function to update the category count when images are moved
+        function updateCategoryCount(categoryName) {
+            // Find the category container
+            const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
+            if (!categoryContainer) return;
+            
+            // Count the image cards in this category
+            const imageCards = categoryContainer.querySelectorAll('.image-card');
+            const count = imageCards.length;
+            
+            // Update the count display in the category header
+            const countElement = categoryContainer.querySelector('.category-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+            
+            // Update the dataset attribute
+            categoryContainer.dataset.totalImages = count;
+            categoryContainer.dataset.visibleImages = count;
+            
+            // Update count in category stats (summary section)
+            const stats = Array.from(document.querySelectorAll('.category-stat-item')).find(
+                item => item.querySelector('.category-stat-name').textContent.trim() === categoryName
+            );
+            
+            if (stats) {
+                const countSpan = stats.querySelector('.category-stat-count');
+                if (countSpan) {
+                    countSpan.textContent = count;
+                }
+            }
+            
+            // Update the internal data structure
+            const categoryData = window.categoriesData.find(cat => cat.name === categoryName);
+            if (categoryData) {
+                categoryData.count = count;
+            }
+            
+            // Apply visual weight based on the number of items
+            updateCategoryVisualWeight(categoryContainer, count);
+        }
+        
+        // Function to update visual appearance based on item count
+        function updateCategoryVisualWeight(categoryContainer, count) {
+            // Skip for Trash category
+            if (categoryContainer.dataset.category === 'Trash') return;
+            
+            // Reset any previously applied styles
+            categoryContainer.style.opacity = '';
+            categoryContainer.style.borderWidth = '';
+            categoryContainer.style.transform = '';
+            
+            // Apply subtle visual changes based on count
+            if (count === 0) {
+                // Empty categories
+                categoryContainer.style.opacity = '0.5';
+                categoryContainer.style.borderWidth = '1px';
+            } else if (count < 3) {
+                // Few items (1-2)
+                categoryContainer.style.opacity = '0.7';
+                categoryContainer.style.borderWidth = '2px';
+            } else if (count < 6) {
+                // Medium number of items (3-5)
+                categoryContainer.style.opacity = '0.85';
+                categoryContainer.style.borderWidth = '3px';
+            } else {
+                // Many items (6+)
+                categoryContainer.style.opacity = '1';
+                categoryContainer.style.borderWidth = '4px';
+                categoryContainer.style.transform = 'scale(1.01)';
+            }
+        }
+
         // Function to merge two categories and remove the source category
         function mergeCategories(sourceContainer, targetContainer, sourceName, targetName) {
             // 1. Get all image cards in the source category
             const sourceCards = sourceContainer.querySelectorAll('.image-card');
             const cardCount = sourceCards.length;
-            
+
             // No cards to move, just remove the category
             if (cardCount === 0) {
                 removeCategory(sourceContainer, sourceName);
                 showNotification(`Empty category "${sourceName}" removed`);
                 return;
             }
-            
+
             // 2. Get the target images container
             const targetImagesContainer = targetContainer.querySelector('.category-images');
-            
+
             // 3. Move all cards from source to target
             sourceCards.forEach(card => {
                 // Update the card's category data attribute
                 card.dataset.category = targetName;
-                
+
                 // Update the "Current" option in the card's select dropdown
                 const select = card.querySelector('.category-select');
                 if (select) {
@@ -2530,24 +3695,24 @@
                         }
                     });
                 }
-                
+
                 // Move the card to the target container
                 targetImagesContainer.appendChild(card);
             });
-            
+
             // 4. Remove the now-empty source category
             removeCategory(sourceContainer, sourceName);
-            
+
             // 5. Update counts
             window.updateCategoryCounts();
-            
+
             // 6. Rebuild dropdowns
             window.rebuildCategorySelects();
-            
+
             // 7. Show notification
             showNotification(`Merged ${cardCount} items from "${sourceName}" into "${targetName}"`);
         }
-        
+
         // Function to remove a category from the UI and data structures
         function removeCategory(container, categoryName) {
             // 1. Remove the container from dragula if it exists
@@ -2559,10 +3724,10 @@
                     window.drake.containers.splice(containerIndex, 1);
                 }
             }
-            
+
             // 2. Remove from the DOM
             container.remove();
-            
+
             // 3. Remove from the summary section
             document.querySelectorAll('.category-stat-item').forEach(item => {
                 const statName = item.querySelector('.category-stat-name');
@@ -2570,62 +3735,62 @@
                     item.remove();
                 }
             });
-            
+
             // 4. Remove from internal data structures
             window.categoriesData = window.categoriesData.filter(cat => cat.name !== categoryName);
-            
+
             // 5. Make sure all dropdowns are updated
             window.rebuildCategorySelects();
         }
-        
+
         // Function to update a category name everywhere in the UI
         function updateCategoryName(container, oldName, newName) {
             // 1. Update container data attribute
             container.dataset.category = newName;
-            
+
             // 2. Update the title text
             const titleText = container.querySelector('.category-title-text');
             titleText.textContent = newName;
-            
+
             // 3. Update all dropdown selects that reference this category
             document.querySelectorAll('.category-select').forEach(select => {
                 Array.from(select.options).forEach(option => {
                     if (option.value === oldName) {
                         option.value = newName;
-                        option.textContent = option.textContent.includes("Current") 
-                            ? newName + " (Current)" 
+                        option.textContent = option.textContent.includes("Current")
+                            ? newName + " (Current)"
                             : newName;
                     }
                 });
             });
-            
+
             // 4. Update all image cards assigned to this category
             document.querySelectorAll(`.image-card[data-category="${oldName}"]`).forEach(card => {
                 card.dataset.category = newName;
             });
-            
+
             // 5. Update category in the summary section
             document.querySelectorAll('.category-stat-name').forEach(statName => {
                 if (statName.textContent === oldName) {
                     statName.textContent = newName;
-                    
+
                     // Re-sort the category stats if needed
                     const allStatItems = Array.from(document.querySelectorAll('.category-stat-item'));
                     const parentList = statName.closest('.category-stats');
-                    
+
                     // Sort stat items alphabetically
                     allStatItems.sort((a, b) => {
                         const nameA = a.querySelector('.category-stat-name').textContent;
                         const nameB = b.querySelector('.category-stat-name').textContent;
-                        
+
                         // Always put Trash at the end
                         if (nameA === 'Trash') return 1;
                         if (nameB === 'Trash') return -1;
-                        
+
                         // Normal alphabetical sort for other categories
                         return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
                     });
-                    
+
                     // Reorder items in the DOM
                     if (parentList) {
                         allStatItems.forEach(item => {
@@ -2634,7 +3799,7 @@
                     }
                 }
             });
-            
+
             // 6. Update internal data structures
             for (let i = 0; i < window.categoriesData.length; i++) {
                 if (window.categoriesData[i].name === oldName) {
@@ -2642,39 +3807,73 @@
                     break;
                 }
             }
-            
+
             // 7. Show success notification
             showNotification(`Renamed category "${oldName}" to "${newName}"`);
-            
+
             // 8. Rebuild category selects to maintain alphabetical order
             window.rebuildCategorySelects();
         }
-        
+
         function generateMoveScript() {
             const scriptModal = document.getElementById('script-modal');
             const scriptContent = document.getElementById('script-content');
-            
-            // Create script header
-            let script = "#!/bin/bash\n" +
-                "# Generated by Gemma3 Categorizer\n" +
-                "# This script will move files into their respective category directories\n" +
-                "# Run this script in the directory containing the images\n\n" +
-                "# Ensure we exit on error\n" +
-                "set -e\n\n" +
-                "echo \"Starting file organization...\"\n\n";
-            
+
+            // Get the current directory from the summary info displayed in the HTML
+            let currentDirectory = "IMAGES_DIRECTORY";
+            try {
+                // Try to extract the directory path from the summary
+                const directoryElement = document.querySelector('.summary-main p:nth-child(2)');
+                if (directoryElement) {
+                    const directoryText = directoryElement.textContent;
+                    if (directoryText.startsWith("Directory: ")) {
+                        currentDirectory = directoryText.substring("Directory: ".length).trim();
+                    }
+                }
+            } catch (e) {
+                console.error("Could not extract directory path:", e);
+            }
+
+            // Create script header with variables for absolute paths
+            let script = `#!/bin/bash
+# Generated by AI Image Categorizer
+# This script will move files into their respective category directories
+# Generated on: ${new Date().toLocaleString()}
+
+# Ensure we exit on error
+set -e
+
+# Define source directory (CHANGE THIS if needed)
+SOURCE_DIR="${currentDirectory}"
+
+# Go to the script directory initially
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+cd "\${SCRIPT_DIR}"
+
+echo "Starting image organization from directory: \${SOURCE_DIR}"
+echo "Make sure this path is correct before proceeding!"
+echo "Press Ctrl+C to abort or any key to continue..."
+read -n 1 -s
+
+# Function to escape special characters in paths
+escape_path() {
+    echo "$1" | sed 's/\\\\/\\\\\\\\/g' | sed 's/"/\\\\"/g' | sed 's/\\$/\\\\$/g' | sed "s/'/\\\\'/g"
+}
+
+`;
+
             // Function to sanitize filenames for shell and ensure proper escaping
             function escapePath(path) {
                 if (!path) return '';
                 return path.replace(/'/g, "'\\''")
             }
-            
+
             // Get current category state from DOM, reflecting any moved images
             let categoryFiles = {};
-            
+
             // Force a count update to ensure everything is in sync
             window.updateCategoryCounts();
-            
+
             // Get files from their current location in the DOM
             document.querySelectorAll('.category-container').forEach(container => {
                 const categoryName = container.dataset.category;
@@ -2686,53 +3885,62 @@
                             filesInCategory.push(filename);
                         }
                     });
-                    
+
                     if (filesInCategory.length > 0) {
                         categoryFiles[categoryName] = filesInCategory;
                     }
                 }
             });
-            
-            // Add mkdir commands
+
+            // Add mkdir commands - using absolute paths with variables
+            script += "# Create category directories\n";
             Object.keys(categoryFiles).forEach(category => {
                 const safeCategory = escapePath(category);
-                
+
                 // Only create Trash directory if it has files
                 if (category === 'Trash') {
                     if (categoryFiles[category].length > 0) {
                         script += "# Create Trash directory (special category)\n" +
-                                  "mkdir -p '" + safeCategory + "'\n\n";
+                                  "mkdir -p \"\${SOURCE_DIR}/" + safeCategory + "\"\n";
                     } else {
                         // Skip empty Trash category
                         return;
                     }
                 } else {
                     script += "# Create directory for " + category + "\n" +
-                              "mkdir -p '" + safeCategory + "'\n\n";
+                              "mkdir -p \"\${SOURCE_DIR}/" + safeCategory + "\"\n";
                 }
             });
-            
-            // Add mv commands
+
+            script += "\n";
+
+            // Add mv commands - using absolute paths with variables
             Object.keys(categoryFiles).forEach(category => {
                 const safeCategory = escapePath(category);
-                
+
                 // Skip empty Trash category
                 if (category === 'Trash' && categoryFiles[category].length === 0) {
                     return;
                 }
-                
+
                 script += "# Move files to " + category + " directory\n";
-                
+
                 categoryFiles[category].forEach(file => {
                     const safeFile = escapePath(file);
-                    script += "mv -v '" + safeFile + "' '" + safeCategory + "/' || echo \"Failed to move " + safeFile + "\"\n";
+                    script += "mv -v \"\${SOURCE_DIR}/" + safeFile + "\" \"\${SOURCE_DIR}/" + safeCategory + "/\" || echo \"Failed to move " + safeFile + "\"\n";
                 });
-                
+
                 script += "\n";
             });
-            
+
             // Final message
-            script += "echo \"File organization complete!\"\n";
+            script += `echo "Organization complete!"
+echo "Files have been organized into category directories."
+echo "Organized in: \${SOURCE_DIR}"
+`;
+
+            // Store the script for download
+            window.generatedScript = script;
             
             // Update modal content
             scriptContent.textContent = script;
