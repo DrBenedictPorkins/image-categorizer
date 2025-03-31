@@ -488,36 +488,42 @@
             position: relative;
             width: 90%;
             max-width: 1200px;
-            height: 90%;
-            max-height: 90vh;
+            height: 95%; /* Increased from 90% to 95% */
+            max-height: 95vh; /* Increased from 90vh to 95vh */
             margin: auto;
             display: flex;
             flex-direction: column;
             background-color: #111;
             border-radius: 8px;
-            overflow: hidden;
+            overflow: hidden; /* Changed from visible to hidden to prevent content from overflowing */
             box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+            align-items: stretch; /* Ensure all children stretch to full width */
         }
         
         .preview-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 5px 15px;
+            padding: 4px 15px;
             background-color: rgba(0, 0, 0, 0.8);
             color: white;
             width: 100%;
-            height: 60px;
+            height: 36px; /* Further reduced height */
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            flex: 0 0 auto; /* Don't grow, don't shrink, use auto height */
         }
         
         .preview-trash-prominent {
-            width: 45px !important;
-            height: 45px !important;
+            width: 30px !important;
+            height: 30px !important;
             background-color: rgba(220, 53, 69, 0.7) !important; /* More red for trash action */
-            font-size: 24px !important;
+            font-size: 18px !important;
             margin-right: 15px;
             order: -1; /* Ensure it's first */
+            position: relative; /* Ensure it has a position */
+            top: auto; /* Override any top position */
+            left: auto; /* Override any left position */
         }
         
         .preview-trash-prominent:hover {
@@ -533,7 +539,7 @@
         }
         
         .preview-header-title {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 500;
             opacity: 0.9;
             flex: 1;
@@ -541,44 +547,49 @@
         }
         
         .preview-image-container {
-            flex: 1;
+            flex: 1 1 auto; /* Grow, shrink, auto basis */
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
-            padding: 20px;
-            overflow: hidden;
+            padding: 10px;
+            overflow: auto; /* Allow scrolling if image is large */
+            min-height: 0; /* Important for Firefox flexbox */
+            width: 100%; /* Match header and footer width */
+            max-width: 100%; /* Ensure it doesn't overflow parent */
         }
         
         .preview-footer {
             display: flex;
             flex-direction: column;
-            padding: 10px 15px;
+            padding: 2px 15px;
             background-color: rgba(0, 0, 0, 0.8);
             width: 100%;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 36px; /* Match reduced header height */
+            flex: 0 0 auto; /* Don't grow, don't shrink, use auto height */
         }
         
         .preview-controls {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 30px;
-            margin-bottom: 10px;
+            gap: 25px;
+            margin-bottom: 3px;
         }
         
         .preview-nav-button, 
         .preview-action-button {
             background-color: rgba(255, 255, 255, 0.1);
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 18px;
             transition: all 0.2s ease;
         }
         
@@ -591,58 +602,62 @@
         .preview-filename {
             color: white;
             opacity: 0.8;
-            font-size: 14px;
+            font-size: 13px;
             text-align: center;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            margin-top: 1px;
         }
 
         .fullsize-preview {
             max-width: 100%;
-            max-height: calc(90vh - 150px); /* Account for taller header and footer */
+            max-height: calc(95vh - 90px); /* Adjusted for smaller header/footer */
             min-width: 200px; /* Smaller minimum since we have a structured container */
             min-height: 150px;
             object-fit: contain; /* Maintain aspect ratio */
             background-color: transparent;
-            padding: 10px;
+            padding: 0; /* Removed padding to maximize image area */
             cursor: default; /* No longer clickable to close */
             margin: 0 auto; /* Center the image */
             display: block;
             border-radius: 4px; /* Add slight rounding to the image */
+            box-sizing: border-box; /* Include border and padding in width/height calculations */
         }
 
         /* Navigation buttons are now in the footer toolbar */
 
         .preview-close {
-            width: 40px;
-            height: 40px;
-            background-color: rgba(0, 0, 0, 0.6);  /* Darker background for better visibility */
+            width: 30px;
+            height: 30px;
+            background-color: rgba(0, 0, 0, 0.8);  /* Darker background for better visibility */
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;  /* Larger font */
-            font-weight: bold; /* Bolder text */
+            font-size: 18px;  /* Smaller font */
+            font-weight: bold;
             color: white;
             cursor: pointer;
-            transition: background-color 0.2s, opacity 0.2s;
-            z-index: 1002;
-            opacity: 0.8;  /* More visible by default */
-            box-shadow: 0 0 10px rgba(0,0,0,0.5); /* Add shadow for contrast */
+            transition: background-color 0.2s, transform 0.1s;
+            z-index: 1010;
+            opacity: 1;
+            margin-left: 10px;
+            margin-right: 20px; /* Added margin-right for proper spacing */
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
 
         .preview-close:hover {
-            background-color: rgba(255, 0, 0, 0.7); /* Red background on hover */
-            opacity: 1;
+            background-color: rgba(255, 0, 0, 0.9); /* Red background on hover */
+            transform: scale(1.1);  /* Slightly enlarge on hover */
         }
         
         /* Trash/Restore button in preview */
         .preview-trash,
         .preview-restore {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 10px; /* Moved from 20px to 10px */
+            left: 10px; /* Moved from 20px to 10px */
             width: 40px;
             height: 40px;
             background-color: rgba(0, 0, 0, 0.6);
@@ -1349,8 +1364,104 @@
 <body>
     <div class="header">
         <h1>Image Categorization Report</h1>
-        <p>Generated on {{timestamp}}</p>
+        <p>Generated on {{timestamp}} - <span id="time-elapsed">0 days, 0 hours, 0 minutes, 0 seconds</span> ago</p>
     </div>
+    
+    <!-- Include dayjs library for better date handling -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/relativeTime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/duration.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.min.js"></script>
+    
+    <script>
+        // Initialize dayjs plugins
+        dayjs.extend(dayjs_plugin_relativeTime);
+        dayjs.extend(dayjs_plugin_duration);
+        dayjs.extend(dayjs_plugin_customParseFormat);
+        
+        // Set the initial timestamp (will be replaced by the Python script)
+        const initialTimestamp = "{{timestamp}}";
+        
+        // Parse the timestamp using dayjs
+        function parseInitialDate() {
+            try {
+                // Python format: "%B %d, %Y at %I:%M %p" -> "March 31, 2025 at 04:14 PM"
+                // Use dayjs to parse this format
+                const parsedDate = dayjs(initialTimestamp, "MMMM D, YYYY [at] h:mm A");
+                
+                if (parsedDate.isValid()) {
+                    return parsedDate;
+                }
+                
+                // If parsing fails, log error and use current date
+                console.log("Could not parse date: ", initialTimestamp);
+                return dayjs(); // Current date as fallback
+            } catch (error) {
+                console.error("Error parsing date: ", error);
+                return dayjs(); // Current date as fallback
+            }
+        }
+        
+        // Format the duration in a human-readable way with smart unit display
+        function formatDuration(duration) {
+            const days = Math.floor(duration.asDays());
+            const hours = duration.hours();
+            const minutes = duration.minutes();
+            const seconds = duration.seconds();
+            
+            // Format with intelligent omission of zeros
+            if (days > 0) {
+                // Show at least days and one smaller unit
+                if (hours > 0) {
+                    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                } else if (minutes > 0) {
+                    return `${days}d ${minutes}m ${seconds}s`;
+                } else {
+                    return `${days}d ${seconds}s`;
+                }
+            } else if (hours > 0) {
+                // Show hours and smaller units
+                return `${hours}h ${minutes}m ${seconds}s`;
+            } else if (minutes > 0) {
+                // Show minutes and seconds
+                return `${minutes}m ${seconds}s`;
+            } else {
+                // Just seconds
+                return `${seconds}s`;
+            }
+        }
+        
+        // Calculate and display time difference
+        function updateTimeElapsed() {
+            try {
+                const initialDate = parseInitialDate();
+                const now = dayjs();
+                
+                // Calculate difference
+                const diffMs = Math.max(0, now.diff(initialDate)); // Ensure non-negative
+                const duration = dayjs.duration(diffMs);
+                
+                // Format duration using our custom formatter
+                const displayStr = formatDuration(duration);
+                
+                // Update the element
+                const timeElapsedElement = document.getElementById('time-elapsed');
+                if (timeElapsedElement) {
+                    timeElapsedElement.textContent = displayStr;
+                }
+            } catch (error) {
+                console.error("Error updating elapsed time:", error);
+                const timeElapsedElement = document.getElementById('time-elapsed');
+                if (timeElapsedElement) {
+                    timeElapsedElement.textContent = "just now";
+                }
+            }
+        }
+        
+        // Update immediately and then every second
+        updateTimeElapsed();
+        setInterval(updateTimeElapsed, 1000);
+    </script>
 
     {{summary}}
 
@@ -1375,7 +1486,7 @@
             <div class="preview-header">
                 <div id="preview-trash" class="preview-action-button preview-trash-prominent" title="Move to Trash">🗑️</div>
                 <div class="preview-header-title" id="preview-header-title">Image Preview</div>
-                <div id="preview-close" class="preview-close">✕</div>
+                <div id="preview-close" class="preview-close" title="Close preview">✕</div>
             </div>
             
             <div class="preview-image-container">
@@ -1673,17 +1784,21 @@
                             trashAllIcon.innerHTML = '❌'; // Change to X icon
                             trashAllIcon.title = 'Remove empty category';
 
-                            // Remove the old event listener before adding a new one
-                            trashAllIcon.outerHTML = trashAllIcon.outerHTML;
-
-                            // Get the fresh element reference after recreating it
-                            const freshIcon = container.querySelector('.trash-all-category-icon');
-
+                            // We need to replace the element entirely to remove old listeners
+                            // Create a new button element
+                            const newIcon = document.createElement('button');
+                            newIcon.className = 'trash-all-category-icon';
+                            newIcon.innerHTML = '❌';
+                            newIcon.title = 'Remove empty category';
+                            newIcon.style.color = 'red';
+                            
                             // Add the appropriate event listener for empty category
-                            freshIcon.addEventListener('click', function(e) {
+                            newIcon.addEventListener('click', function(e) {
+                                console.log("Remove empty category icon clicked");
                                 e.stopPropagation();
                                 // Ask for confirmation
                                 if (confirm(`Are you sure you want to remove the empty category "${categoryName}"?`)) {
+                                    console.log(`Removing empty category: ${categoryName}`);
                                     // Remove the category container
                                     container.remove();
                                     // Notify the user
@@ -1698,28 +1813,32 @@
                                     window.syncCategoryData();
                                 }
                             });
+                            
+                            // Replace the old icon with the new one
+                            trashAllIcon.parentNode.replaceChild(newIcon, trashAllIcon);
                         } else {
-                            // Non-empty category - use default appearance
-                            trashAllIcon.style.color = ''; // Reset to default color
-                            trashAllIcon.innerHTML = '🗑️'; // Reset to trash icon
-                            trashAllIcon.title = 'Move all images to Trash';
-
-                            // Remove the old event listener before adding a new one
-                            trashAllIcon.outerHTML = trashAllIcon.outerHTML;
-
-                            // Get the fresh element reference after recreating it
-                            const freshIcon = container.querySelector('.trash-all-category-icon');
-
+                            // Non-empty category - create a new trash icon
+                            // Create a new button element
+                            const newIcon = document.createElement('button');
+                            newIcon.className = 'trash-all-category-icon';
+                            newIcon.innerHTML = '🗑️';
+                            newIcon.title = 'Move all images to Trash';
+                            
                             // Add the appropriate event listener for non-empty category
-                            freshIcon.addEventListener('click', function(e) {
+                            newIcon.addEventListener('click', function(e) {
+                                console.log("Move all to trash icon clicked");
                                 e.stopPropagation();
                                 // Get the current count
                                 const currentCount = container.querySelector('.category-images').childElementCount;
                                 // Handle non-empty category case
                                 if (confirm(`Are you sure you want to move all images (${currentCount}) from "${categoryName}" to Trash?`)) {
+                                    console.log(`Moving all images from category: ${categoryName} to Trash`);
                                     moveAllToTrash(categoryName);
                                 }
                             });
+                            
+                            // Replace the old icon with the new one
+                            trashAllIcon.parentNode.replaceChild(newIcon, trashAllIcon);
                         }
                     }
                 }
@@ -2330,20 +2449,29 @@
                 
                 // Set up preview action buttons
                 document.getElementById('preview-trash').addEventListener('click', function() {
+                    console.log("Preview trash/restore button clicked");
+                    
                     // Check if we have a current image card
-                    if (!window.currentPreviewCard) return;
+                    if (!window.currentPreviewCard) {
+                        console.error("No currentPreviewCard found");
+                        return;
+                    }
                     
                     const currentCategory = window.currentPreviewCard.dataset.category;
                     const imageId = window.currentPreviewCard.dataset.id;
                     
+                    console.log(`Preview card: id=${imageId}, category=${currentCategory}`);
+                    
                     // Handle differently based on current category
                     if (currentCategory === 'Trash') {
+                        console.log("Attempting to restore from trash in preview mode");
                         // If in Trash, restore the image
                         restoreFromTrash(window.currentPreviewCard);
                         
                         // Close the preview
                         document.getElementById('preview-overlay').style.display = 'none';
                     } else {
+                        console.log("Attempting to move to trash in preview mode");
                         // Otherwise, move to Trash
                         // Get the category container the image is in
                         const categoryContainer = document.querySelector(`.category-container[data-category="${currentCategory}"]`);
@@ -2354,65 +2482,97 @@
                         const trashContainer = document.querySelector(`.category-container[data-category="Trash"]`);
                         
                         if (categoryContainer && trashContainer) {
+                            console.log(`Storing original category: ${currentCategory}`);
                             // Store original category for restore
                             window.currentPreviewCard.dataset.originalCategory = currentCategory;
                             
                             // Also store it in the card data
                             const cardData = window.cardData.find(c => c.filename === imageId);
                             if (cardData) {
+                                console.log("Updating cardData with originalCategory");
                                 cardData.originalCategory = currentCategory;
+                            } else {
+                                console.warn(`Could not find card data for image ${imageId}`);
                             }
                             
-                            // Move the card to Trash category
-                            trashContainer.querySelector('.category-images').appendChild(window.currentPreviewCard);
-                            
-                            // Update the card's category
-                            window.currentPreviewCard.dataset.category = 'Trash';
-                            
-                            // Apply Trash styling to the image
-                            const imageContainer = window.currentPreviewCard.querySelector('.image-container');
-                            if (imageContainer) {
-                                imageContainer.style.height = "120px";
-                                imageContainer.style.opacity = "0.7";
-                                
-                                // Remove trash icon and add restore icon
-                                const trashIcon = imageContainer.querySelector('.trash-icon');
-                                if (trashIcon) {
-                                    trashIcon.remove();
+                            try {
+                                console.log("Moving card to Trash container");
+                                // Get the images container within the Trash category
+                                const trashImagesContainer = trashContainer.querySelector('.category-images');
+                                if (!trashImagesContainer) {
+                                    throw new Error("Could not find images container in Trash category");
                                 }
                                 
-                                // Add restore icon
-                                const restoreIcon = document.createElement('button');
-                                restoreIcon.className = 'restore-icon';
-                                restoreIcon.innerHTML = '↩️';
-                                restoreIcon.title = 'Restore from Trash';
+                                // Move the card to Trash category
+                                trashImagesContainer.appendChild(window.currentPreviewCard);
                                 
-                                // Add click handler to restore from Trash
-                                restoreIcon.addEventListener('click', function(e) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    restoreFromTrash(window.currentPreviewCard);
-                                });
+                                // Update the card's category
+                                console.log("Updating card category to Trash");
+                                window.currentPreviewCard.dataset.category = 'Trash';
                                 
-                                imageContainer.appendChild(restoreIcon);
+                                // Apply Trash styling to the image
+                                console.log("Applying Trash styling");
+                                const imageContainer = window.currentPreviewCard.querySelector('.image-container');
+                                if (imageContainer) {
+                                    imageContainer.style.height = "120px";
+                                    imageContainer.style.opacity = "0.7";
+                                    
+                                    // Remove trash icon and add restore icon
+                                    const trashIcon = imageContainer.querySelector('.trash-icon');
+                                    if (trashIcon) {
+                                        console.log("Removing trash icon");
+                                        trashIcon.remove();
+                                    } else {
+                                        console.warn("No trash icon found to remove");
+                                    }
+                                    
+                                    // Add restore icon
+                                    console.log("Adding restore icon");
+                                    const restoreIcon = document.createElement('button');
+                                    restoreIcon.className = 'restore-icon';
+                                    restoreIcon.innerHTML = '↩️';
+                                    restoreIcon.title = 'Restore from Trash';
+                                    
+                                    // Add click handler to restore from Trash
+                                    restoreIcon.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        console.log("Restore icon clicked");
+                                        restoreFromTrash(window.currentPreviewCard);
+                                    });
+                                    
+                                    imageContainer.appendChild(restoreIcon);
+                                } else {
+                                    console.error("Could not find image container within card");
+                                }
+                            } catch (error) {
+                                console.error("Error applying trash styling:", error);
+                                showNotification("Error: Failed to move image to trash");
                             }
                             
-                            // Update card border color to match Trash
-                            const trashColor = '#dc3545'; // Red for Trash
-                            window.currentPreviewCard.style.borderTopColor = trashColor;
-                            
-                            // Find category in card data and update
-                            if (cardData) {
-                                cardData.category = 'Trash';
-                                cardData.cardColor = trashColor;
+                            try {
+                                console.log("Updating card styling and data");
+                                // Update card border color to match Trash
+                                const trashColor = '#dc3545'; // Red for Trash
+                                window.currentPreviewCard.style.borderTopColor = trashColor;
+                                
+                                // Find category in card data and update
+                                if (cardData) {
+                                    cardData.category = 'Trash';
+                                    cardData.cardColor = trashColor;
+                                }
+                                
+                                // Update category counts
+                                console.log("Updating category counts");
+                                updateCategoryCount(currentCategory);
+                                updateCategoryCount('Trash');
+                                
+                                // Close the preview
+                                console.log("Closing preview overlay");
+                                document.getElementById('preview-overlay').style.display = 'none';
+                            } catch (error) {
+                                console.error("Error updating card metadata:", error);
                             }
-                            
-                            // Update category counts
-                            updateCategoryCount(currentCategory);
-                            updateCategoryCount('Trash');
-                            
-                            // Close the preview
-                            document.getElementById('preview-overlay').style.display = 'none';
                             
                             // Show notification
                             showNotification("Image moved to Trash");
@@ -3180,17 +3340,39 @@
 
         // Function to move a card to the Trash category
         function moveToTrash(card) {
+            console.log("moveToTrash called with card:", card);
+            
+            // Validate that we have a valid card element
+            if (!card || !card.dataset || !card.dataset.id) {
+                console.error("Invalid card object passed to moveToTrash");
+                showNotification("Error: Failed to move image to trash");
+                return;
+            }
+            
             const imageId = card.dataset.id;
             const sourceCategory = card.dataset.category;
             const trashCategoryName = 'Trash';
+            
+            console.log(`Moving image ${imageId} from ${sourceCategory} to Trash`);
+            
+            // Skip if already in Trash
+            if (sourceCategory === 'Trash') {
+                console.warn(`Card with ID ${imageId} is already in Trash`);
+                showNotification("Image is already in Trash");
+                return;
+            }
 
             // Store the original category for potential restore operation
+            console.log(`Setting originalCategory to ${sourceCategory}`);
             card.dataset.originalCategory = sourceCategory;
             
             // Also store it in the card data
             const cardData = window.cardData.find(c => c.filename === imageId);
             if (cardData) {
+                console.log("Updating cardData with originalCategory");
                 cardData.originalCategory = sourceCategory;
+            } else {
+                console.warn(`Could not find card data for image ${imageId}`);
             }
 
             // Check if Trash category exists, create it if not
@@ -3313,21 +3495,42 @@
 
         // Function to restore an image from Trash to its original category
         function restoreFromTrash(card) {
+            console.log("restoreFromTrash called with card:", card);
+            
+            // Validate that we have a valid card element
+            if (!card || !card.dataset || !card.dataset.id) {
+                console.error("Invalid card object passed to restoreFromTrash");
+                showNotification("Error: Failed to restore image");
+                return;
+            }
+            
             const imageId = card.dataset.id;
             const currentCategory = card.dataset.category; // Should be 'Trash'
             
+            console.log(`Restoring image ${imageId} from ${currentCategory}`);
+            
+            // Verify card is actually in Trash
+            if (currentCategory !== 'Trash') {
+                console.warn(`Card with ID ${imageId} is not in Trash (current category: ${currentCategory})`);
+                showNotification("Error: Image is not in Trash category");
+                return;
+            }
+            
             // Get the original category from the data attribute or use 'Uncategorized' as fallback
             let targetCategory = card.dataset.originalCategory || 'Uncategorized';
+            console.log(`Original category: ${targetCategory}`);
             
             // Check if the target category exists, create it if not
             let targetContainer = document.querySelector(`.category-container[data-category="${targetCategory}"]`);
             
             if (!targetContainer) {
+                console.log(`Target category ${targetCategory} does not exist, creating Restored category`);
                 // If original category no longer exists, create a new one called "Restored"
                 targetCategory = 'Restored';
                 targetContainer = document.querySelector(`.category-container[data-category="Restored"]`);
                 
                 if (!targetContainer) {
+                    console.log("Creating new Restored category container");
                     // Create a new category container
                     targetContainer = createCategoryContainer({
                         name: 'Restored',
@@ -3337,41 +3540,60 @@
                     // Add it to the categories container but before the Trash category
                     const categoriesContainer = document.querySelector('.categories-container');
                     const trashContainer = document.querySelector(`.category-container[data-category="Trash"]`);
-                    categoriesContainer.insertBefore(targetContainer, trashContainer);
-                    
-                    // Add to categoriesData
-                    if (!window.categoriesData) {
-                        window.categoriesData = [];
+                    if (categoriesContainer && trashContainer) {
+                        categoriesContainer.insertBefore(targetContainer, trashContainer);
+                        
+                        // Add to categoriesData
+                        if (!window.categoriesData) {
+                            window.categoriesData = [];
+                        }
+                        window.categoriesData.push({
+                            name: 'Restored',
+                            count: 0
+                        });
+                        
+                        // Apply colors and setup
+                        applyColorsToElements();
+                    } else {
+                        console.error("Could not find categories container or trash container");
+                        showNotification("Error: Failed to create Restored category");
+                        return;
                     }
-                    window.categoriesData.push({
-                        name: 'Restored',
-                        count: 0
-                    });
-                    
-                    // Apply colors and setup
-                    applyColorsToElements();
                 }
             }
             
             // Get the category image containers
             const targetImagesContainer = targetContainer.querySelector('.category-images');
+            if (!targetImagesContainer) {
+                console.error(`Could not find images container for category ${targetCategory}`);
+                showNotification("Error: Failed to find target category container");
+                return;
+            }
+            
+            console.log("Found target images container:", targetImagesContainer);
             
             // Remove the restore icon
             const restoreIcon = card.querySelector('.restore-icon');
             if (restoreIcon) {
+                console.log("Removing restore icon");
                 restoreIcon.remove();
+            } else {
+                console.warn("No restore icon found on the card");
             }
             
             // Update the card's category
+            console.log(`Changing card category from ${card.dataset.category} to ${targetCategory}`);
             card.dataset.category = targetCategory;
             
             // Add trash icon back
             const imageContainer = card.querySelector('.image-container');
             if (imageContainer) {
+                console.log("Resetting image container styling");
                 // Reset any Trash-specific styling
                 imageContainer.style.height = ''; // Remove fixed height
                 imageContainer.style.opacity = ''; // Reset opacity
                 
+                console.log("Adding trash icon");
                 // Add trash icon
                 const trashIcon = document.createElement('button');
                 trashIcon.className = 'trash-icon';
@@ -3386,11 +3608,14 @@
                 });
                 
                 imageContainer.appendChild(trashIcon);
+            } else {
+                console.error("Could not find image container within card");
             }
             
             // Update the select dropdown
             const select = card.querySelector('.category-select');
             if (select) {
+                console.log("Updating category select dropdown");
                 // Clear existing options
                 select.innerHTML = '';
                 
@@ -3426,25 +3651,38 @@
             }
             
             // Update card border color to match target category
+            console.log("Updating card styling");
             const categoryColorMap = window.categoryColorMap || {};
             const categoryColor = categoryColorMap[targetCategory] || '#3b82f6';
             card.style.borderTopColor = categoryColor;
             
             // Update card data
+            console.log("Updating card data in window.cardData");
             const cardData = window.cardData.find(c => c.filename === imageId);
             if (cardData) {
                 cardData.category = targetCategory;
                 cardData.cardColor = categoryColor;
+            } else {
+                console.warn(`Could not find card data for image ${imageId}`);
             }
             
             // Move the card to the target container
-            targetImagesContainer.appendChild(card);
+            console.log(`Moving card to ${targetCategory} container`);
+            try {
+                targetImagesContainer.appendChild(card);
+            } catch (error) {
+                console.error("Error moving card to target container:", error);
+                showNotification("Error: Failed to move image to target category");
+                return;
+            }
             
             // Update category counts
+            console.log("Updating category counts");
             updateCategoryCount(currentCategory); // Update Trash count
             updateCategoryCount(targetCategory); // Update target category count
             
             // Show notification
+            console.log("Restore operation complete");
             showNotification(`Image restored to ${targetCategory}`);
         }
         
