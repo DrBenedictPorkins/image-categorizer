@@ -11,7 +11,7 @@ An intelligent image categorization tool using AI for automatic image organizati
 
 ```bash
 # 1. Clone repo and navigate to directory
-git clone https://github.com/your-username/image-categorizer.git
+git clone https://github.com/DrBenedictPorkins/image-categorizer.git
 cd image-categorizer
 
 # 2. Install with uv
