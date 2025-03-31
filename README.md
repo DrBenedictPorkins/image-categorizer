@@ -7,11 +7,31 @@ An intelligent image categorization tool using AI for automatic image organizati
 [![GPT-4o mini](https://img.shields.io/badge/GPT--4o-mini-orange)](https://openai.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## TL;DR - Quick Start
+
+```bash
+# 1. Clone repo and navigate to directory
+git clone https://github.com/your-username/image-categorizer.git
+cd image-categorizer
+
+# 2. Install with uv
+uv pip install -e .
+
+# 3. Set API key (choose ONE)
+export ANTHROPIC_API_KEY=your_key_here  # Recommended (or)
+export OPENAI_API_KEY=your_key_here     # Alternative
+
+# 4. Run on your images
+python main.py /path/to/your/images
+```
+
+That's it! An HTML report will open in your browser when processing completes.
+
 ## Overview
 
 This tool processes a directory of images and:
-1. Generates detailed descriptions for each image using Salesforce BLIP model
-2. Assigns concise category labels to each image using advanced LLMs (Anthropic Claude or OpenAI GPT)
+1. Generates detailed descriptions for each image using Salesforce BLIP model (Local LLM)
+2. Assigns concise category labels to each image using advanced AI (ANTHROPIC Claude 3.7 Sonnet preferred, or OPENAI as an alternative option)
 3. Groups images into logical categories for organization
 4. Creates an interactive HTML report for viewing and organizing images with drag-and-drop functionality
 
@@ -22,9 +42,11 @@ This tool processes a directory of images and:
   - Apple Silicon Mac (M1/M2/M3) - optimal performance
   - NVIDIA GPU with CUDA support
   - Any modern CPU (will be slower)
-- **API Keys**: At least one of:
-  - Anthropic API key (recommended for Claude 3.7 Sonnet)
-  - OpenAI API key (alternative for GPT-4o mini)
+- **LLM Requirements**:
+  - Local: Salesforce BLIP for image descriptions (included in package)
+  - Remote: **REQUIRED** - You must choose one of:
+    - ANTHROPIC API key (recommended for Claude 3.7 Sonnet - preferred option)
+    - OPENAI API key (alternative option for GPT-4o mini)
 - **Internet connection** for API access
 
 ## Quick Start
@@ -97,10 +119,10 @@ python main.py /path/to/your/images
 ```
 
 The program will:
-1. Process each image using BLIP to generate detailed descriptions
-2. Create concise category labels using either:
-   - Claude 3.7 Sonnet (if ANTHROPIC_API_KEY is set - preferred)
-   - GPT-4o mini (if OPENAI_API_KEY is set)
+1. Process each image using BLIP (Local LLM from Salesforce) to generate detailed descriptions
+2. Create concise category labels using your chosen remote LLM:
+   - ANTHROPIC Claude 3.7 Sonnet (if ANTHROPIC_API_KEY is set - preferred)
+   - OPENAI GPT-4o mini (if OPENAI_API_KEY is set - alternative option)
 3. Group images into logical categories
 4. Generate an interactive HTML report that opens automatically
 5. Show a summary of results with performance metrics
@@ -151,7 +173,7 @@ An HTML report is automatically generated with:
 ### Group Categories
 
 Images are automatically analyzed as a collection to create logical directory categories:
-- Uses advanced LLMs (primarily Anthropic Claude 3.7 Sonnet) to analyze all image descriptions holistically
+- Uses remote LLM (ANTHROPIC Claude 3.7 Sonnet preferred) to analyze all image descriptions holistically
 - Creates logical, semantically meaningful categories suitable for directory organization (5-10 categories)
 - Assigns each image to the most appropriate category
 - Handles edge cases gracefully with special categorization rules
@@ -169,27 +191,32 @@ Images are automatically analyzed as a collection to create logical directory ca
 
 ## Model Configuration
 
-The script uses the Salesforce BLIP image captioning model (large version) for image analysis and utilizes advanced language models for categorization:
+The tool uses two types of AI models to process and categorize your images:
 
-1. **BLIP (image-to-text)**: Generates detailed descriptions of images
-   - Uses MPS (Metal Performance Shaders) acceleration on Apple Silicon
+1. **Local LLM: BLIP (image-to-text)**: 
+   - Developed by Salesforce Research
+   - Runs locally on your machine (no API key required)
+   - Generates detailed descriptions of image content
+   - Uses Metal Performance Shaders (MPS) acceleration on Apple Silicon
    - Uses CUDA on NVIDIA GPUs if available
    - Falls back to CPU if needed
 
-2. **Text Generation Models** (depending on available credentials):
-   - **Anthropic Claude 3.7 Sonnet** (Primary option): 
-     - Used automatically if ANTHROPIC_API_KEY is provided
-     - Superior categorization with nuanced understanding of image contexts
-     - Excellent at identifying meaningful, intuitive categories
-     - Creates more consistent and logical groupings
-     - Handles diverse image collections particularly well
-     - Requires Anthropic API key
+2. **Remote LLM (REQUIRED for categorization)**: 
    
-   - **OpenAI GPT-4o mini** (Fallback option):
-     - Used when Anthropic API is unavailable or fails
-     - Fast and efficient for category generation
-     - Good quality categorization capabilities
-     - Requires OpenAI API key
+   **Option 1 (Preferred): ANTHROPIC Claude 3.7 Sonnet**
+   - State-of-the-art multimodal AI model
+   - Performs exceptional image categorization
+   - Creates intuitive, semantically meaningful categories
+   - Handles diverse image collections with deep understanding
+   - Understands nuanced image contexts and relationships
+   - Requires Anthropic API key
+   
+   **Option 2: OPENAI GPT-4o mini**
+   - Alternative choice for image categorization
+   - Provides good quality categorization capabilities
+   - Requires OpenAI API key
+   
+   > **Note:** You MUST configure ONE of these remote LLMs via API key for the categorization functionality to work properly.
 
 
 ## Customization
