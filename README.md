@@ -31,7 +31,7 @@ This tool processes a directory of images and:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/image-categorizer.git
+   git clone https://github.com/makram/image-categorizer.git
    cd image-categorizer
    ```
 
@@ -77,10 +77,14 @@ This tool processes a directory of images and:
 
 5. **Run the program**:
    ```bash
+   # Process images in your Photos folder
+   python main.py ~/Pictures/MyPhotos
+   
+   # Or a specific folder of images you want to categorize
    python main.py /path/to/your/images
    ```
    
-   After processing completes, an interactive HTML report will open in your default browser.
+   After processing completes, an interactive HTML report (`image_categories.html`) will open in your default browser.
 
 ## Usage Options
 
@@ -105,16 +109,16 @@ The program will:
 
 ```bash
 # Process a specific directory of images
-python main.py /path/to/your/images
+python main.py ~/Pictures/Vacation2023
 
 # Reuse existing JSON data to regenerate HTML report (much faster)
-python main.py /path/to/images --json /path/to/image_categories.json
+python main.py ~/Pictures/Vacation2023 --json ~/Pictures/Vacation2023/image_categories.json
 
 # Use a specific existing group categorization
-python main.py /path/to/images -j /path/to/group_categories.json
+python main.py ~/Pictures/Vacation2023 -j ~/Pictures/Vacation2023/group_categories.json
 
-# Specify output directory for generated files
-python main.py /path/to/images --output /path/to/output/dir
+# Just create a symlink to view results elsewhere if needed
+ln -s ~/Pictures/Vacation2023/image_categories.html ~/Documents/vacation_report.html
 
 # Help and options
 python main.py --help
@@ -187,13 +191,6 @@ The script uses the Salesforce BLIP image captioning model (large version) for i
      - Good quality categorization capabilities
      - Requires OpenAI API key
 
-## Output Files
-
-The script generates several output files in the image directory:
-
-1. `image_categories.json`: JSON file with descriptions and categories for each image
-2. `group_categories.json`: JSON file with grouped categories and assigned images
-3. `image_categories.html`: Interactive HTML report for viewing and reorganizing images
 
 ## Customization
 
