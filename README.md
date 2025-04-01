@@ -13,23 +13,66 @@ This tool uses:
 - Local Salesforce BLIP model (downloaded automatically) to analyze and describe images
 - Remote LLM (ANTHROPIC or OPENAI) for categorization - you must provide one API key
 
+First, install uv package manager:
+* Get uv from https://github.com/astral-sh/uv/releases or via pip: `pip install uv`
+
 ```bash
-# 1. Clone repo and navigate to directory
+# Clone repo
 git clone https://github.com/DrBenedictPorkins/image-categorizer.git
+```
+
+```bash
+# Navigate to directory
 cd image-categorizer
+```
 
-# 2. Install with uv
+```bash
+# Create virtual environment
+uv venv
+```
+
+For macOS/Linux:
+```bash
+# Activate virtual environment (macOS/Linux)
+source .venv/bin/activate
+```
+
+For Windows:
+```bash
+# Activate virtual environment (Windows)
+.venv\Scripts\activate
+```
+
+```bash
+# Install dependencies
 uv pip install -e .
+```
 
-# 3. Set API key (choose ONE - required for categorization)
-export ANTHROPIC_API_KEY=your_key_here  # Recommended (or)
-export OPENAI_API_KEY=your_key_here     # Alternative
-
-# 4. Run on your images
+To run with Anthropic API (recommended):
+```bash
+# Set API key and run
+export ANTHROPIC_API_KEY=your_key_here
 python main.py /path/to/your/images
 ```
 
-That's it! An HTML report will open in your browser when processing completes.
+OR one-line version:
+```bash
+ANTHROPIC_API_KEY=your_key_here python main.py /path/to/your/images
+```
+
+Alternatively, to run with OpenAI API:
+```bash
+# Set API key and run
+export OPENAI_API_KEY=your_key_here
+python main.py /path/to/your/images
+```
+
+OR one-line version:
+```bash
+OPENAI_API_KEY=your_key_here python main.py /path/to/your/images
+```
+
+That's it! An HTML report (`image_categories.html`) will be generated in your image directory.
 
 ## Overview
 
@@ -61,19 +104,16 @@ This tool processes a directory of images and:
    cd image-categorizer
    ```
 
-2. **Install Python 3.9.19+ or 3.13+**:
+2. **Verify Python requirements**:
    ```bash
-   # Option A: Using pyenv (recommended)
-   pyenv install 3.9.19  # or 3.13.0
-   pyenv local 3.9.19    # or 3.13.0
-   
-   # Option B: Use your system Python if it's version 3.9.19+ or 3.13+
-   python --version  # Verify it's 3.9.19+ or 3.13+
+   # Ensure you have Python 3.9.19+ or 3.13+
+   python --version
    ```
 
-3. **Set up the environment**:
+3. **Set up with uv**:
    ```bash
-   # Install uv package manager
+   # Get uv from https://github.com/astral-sh/uv/releases
+   # Or install via pip
    pip install uv
    
    # Create and activate virtual environment
