@@ -2,6 +2,8 @@
 
 An intelligent image categorization tool using AI for automatic image organization.
 
+📺 [**Watch Introduction Video**](https://www.youtube.com/watch?v=8wniawe13Xc)
+
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![Claude 3.7](https://img.shields.io/badge/Claude-3.7%20Sonnet-green)](https://www.anthropic.com/)
 [![GPT-4o mini](https://img.shields.io/badge/GPT--4o-mini-orange)](https://openai.com/)
@@ -150,7 +152,7 @@ This tool processes a directory of images and:
    python main.py /path/to/your/images
    ```
    
-   After processing completes, an interactive HTML report (`image_categories.html`) will open in your default browser.
+   After processing completes, an interactive HTML report (`image_categories.html`) will be generated in your image directory. You can open this file in any web browser.
 
 ## Usage Options
 
@@ -182,6 +184,9 @@ python main.py ~/Pictures/Vacation2023 --json ~/Pictures/Vacation2023/image_cate
 
 # Use a specific existing group categorization
 python main.py ~/Pictures/Vacation2023 -j ~/Pictures/Vacation2023/group_categories.json
+
+# Automatically use group_categories.json from the image directory
+python main.py ~/Pictures/Vacation2023 --json
 
 # Just create a symlink to view results elsewhere if needed
 ln -s ~/Pictures/Vacation2023/image_categories.html ~/Documents/vacation_report.html
