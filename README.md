@@ -2,7 +2,12 @@
 
 An intelligent image categorization tool using AI for automatic image organization.
 
-📺 [**Watch Introduction Video**](https://www.youtube.com/watch?v=8wniawe13Xc)
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=8wniawe13Xc">
+    <img src="https://img.youtube.com/vi/8wniawe13Xc/0.jpg" alt="Introduction Video" width="400">
+  </a>
+  <p>👆 Click to watch introduction video</p>
+</div>
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![Claude 3.7](https://img.shields.io/badge/Claude-3.7%20Sonnet-green)](https://www.anthropic.com/)
@@ -78,15 +83,16 @@ That's it! An HTML report (`image_categories.html`) will be generated in your im
 
 ## Overview
 
-This tool processes a directory of images and:
-1. Generates detailed descriptions for each image using Salesforce BLIP model (Local LLM)
-2. Assigns concise category labels to each image using advanced AI (ANTHROPIC Claude 3.7 Sonnet preferred, or OPENAI as an alternative option)
-3. Groups images into logical categories for organization
-4. Creates an interactive HTML report for viewing and organizing images with drag-and-drop functionality
+This tool automatically analyzes and organizes image collections by:
+1. Creating detailed descriptions with Salesforce BLIP (Local LLM)
+2. Assigning category labels using AI (Claude 3.7 Sonnet or GPT-4o mini)
+3. Grouping images into logical categories
+4. Generating an interactive HTML report with drag-and-drop organization
+5. Creating bash scripts for physically moving files into categorized directories
 
 ## System Requirements
 
-- **Python**: 3.9.19+ or 3.13+ (recommended)
+- **Python**: 3.9.19+
 - **Hardware**: One of the following:
   - Apple Silicon Mac (M1/M2/M3) - optimal performance
   - NVIDIA GPU with CUDA support
@@ -108,7 +114,7 @@ This tool processes a directory of images and:
 
 2. **Verify Python requirements**:
    ```bash
-   # Ensure you have Python 3.9.19+ or 3.13+
+   # Ensure you have Python 3.9.19+
    python --version
    ```
 
@@ -243,9 +249,10 @@ Images are automatically analyzed as a collection to create logical directory ca
 The tool uses two types of AI models to process and categorize your images:
 
 1. **Local LLM: BLIP (image-to-text)**: 
-   - Developed by Salesforce Research
    - Runs locally on your machine (no API key required)
    - Generates detailed descriptions of image content
+   - Defaults to 'Salesforce/blip2-flan-t5-xl-coco' model
+   - Requires a BLIP-compatible LLM for image-to-text conversion
    - Uses Metal Performance Shaders (MPS) acceleration on Apple Silicon
    - Uses CUDA on NVIDIA GPUs if available
    - Falls back to CPU if needed
