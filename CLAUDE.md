@@ -1,16 +1,21 @@
 # Image Categorizer - Guidelines for Claude
 
 ## Project Overview
-- Image categorization tool using Google's Gemma 3 model
-- Takes directory of images and assigns single-word labels to each
+- Image categorization tool using Salesforce BLIP (local) for image descriptions and either Claude 3.7 or GPT-4o mini (remote) for categorization
+- Takes directory of images, creates detailed descriptions, and organizes them into semantic categories
+- Generates an interactive HTML report with drag-and-drop functionality
 
 ## Environment & Dependencies
-- Python 3.13+
-- Key packages: transformers, torch, pillow, httpx
+- Python 3.9.19+
+- Key packages: transformers, torch, pillow, httpx, openai, anthropic
 - Install: `uv pip install -e .`
+- Requires either ANTHROPIC_API_KEY or OPENAI_API_KEY as environment variable
 
 ## Commands
 - Run: `python main.py <directory_path>`
+- Use existing JSON: `python main.py <directory_path> --json <json_file>`
+- Specify BLIP model: `python main.py <directory_path> --blip-model <model_name>`
+- Default BLIP model: 'Salesforce/blip2-flan-t5-xl-coco'
 
 ## Code Style Guidelines
 - Follow PEP 8 conventions
@@ -28,6 +33,13 @@
 - Format: `black .`
 - Lint: `ruff check .`
 - Type check: `mypy .`
+
+## Project Files
+- `main.py`: Core script that processes images and generates reports
+- `template.html`: HTML template for the interactive report
+- `blip_prompt.txt`: Custom prompt for the BLIP model (optional)
+- `fix_scripts/`: Contains utility scripts for fixing various issues
+- `test_scripts/`: Contains test scripts for different models and functionality
 
 
 ## Git & Version Control

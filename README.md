@@ -55,10 +55,34 @@ For Windows:
 uv pip install -e .
 ```
 
+**Option 1: Using a .env file (recommended)**
+
+Create a `.env` file in the project root with your API key:
+```
+# For Anthropic API (recommended)
+ANTHROPIC_API_KEY=your_key_here
+
+# OR for OpenAI API
+OPENAI_API_KEY=your_key_here
+```
+
+You can use the provided `.env.example` file as a template:
+```bash
+cp .env.example .env
+# Then edit .env to add your API key
+```
+
+Then run:
+```bash
+python main.py /path/to/your/images
+```
+
+**Option 2: Using environment variables**
+
 To run with Anthropic API (recommended):
 ```bash
 # Set API key and run
-export ANTHROPIC_API_KEY=your_key_here
+export ANTHROPIC_API_KEY=your_key_here  # Linux/macOS
 python main.py /path/to/your/images
 ```
 
@@ -70,7 +94,7 @@ ANTHROPIC_API_KEY=your_key_here python main.py /path/to/your/images
 Alternatively, to run with OpenAI API:
 ```bash
 # Set API key and run
-export OPENAI_API_KEY=your_key_here
+export OPENAI_API_KEY=your_key_here  # Linux/macOS
 python main.py /path/to/your/images
 ```
 
@@ -123,42 +147,57 @@ This tool automatically analyzes and organizes image collections by:
    # Get uv from https://github.com/astral-sh/uv/releases
    # Or install via pip
    pip install uv
-   
+
    # Create and activate virtual environment
    uv venv
    source .venv/bin/activate  # On Linux/macOS
    # OR
    .venv\Scripts\activate     # On Windows
-   
+
    # Install dependencies
    uv pip install -e .
    ```
 
 4. **Set up API key** (required for categorization):
+
+   **Option 1: Using a .env file (recommended)**
+
+   Create a `.env` file in the project root directory with your API key:
+   ```
+   # Option A: Anthropic API (recommended for best results)
+   ANTHROPIC_API_KEY=your_api_key_here
+
+   # Option B: OpenAI API (alternative)
+   OPENAI_API_KEY=your_api_key_here
+   ```
+
+   You can use the provided `.env.example` file as a template - just copy it to `.env` and add your API key.
+
+   **Option 2: Using environment variables**
    ```bash
    # Option A: Anthropic API (recommended for best results)
    export ANTHROPIC_API_KEY=your_api_key_here  # Linux/macOS
    # OR
    set ANTHROPIC_API_KEY=your_api_key_here     # Windows
-   
+
    # Option B: OpenAI API (alternative)
    export OPENAI_API_KEY=your_api_key_here     # Linux/macOS
    # OR
    set OPENAI_API_KEY=your_api_key_here        # Windows
    ```
-   
+
    > **Note**: At least one of these API keys must be provided for image categorization to work.
 
 5. **Run the program**:
    ```bash
    # Process images in your Photos folder
    python main.py ~/Pictures/MyPhotos
-   
+
    # Or a specific folder of images you want to categorize
    python main.py /path/to/your/images
    ```
-   
-   After processing completes, an interactive HTML report (`image_categories.html`) will be generated in your image directory. You can open this file in any web browser.
+
+   After processing completes, an interactive HTML report (`image_categories.html`) will be generated in your image directory and automatically opened in your default web browser.
 
 ## Usage Options
 
@@ -258,7 +297,7 @@ The tool uses two types of AI models to process and categorize your images:
    - Falls back to CPU if needed
 
 2. **Remote LLM (REQUIRED for categorization)**: 
-   
+
    **Option 1 (Preferred): ANTHROPIC Claude 3.7 Sonnet**
    - State-of-the-art multimodal AI model
    - Performs exceptional image categorization
@@ -266,12 +305,12 @@ The tool uses two types of AI models to process and categorize your images:
    - Handles diverse image collections with deep understanding
    - Understands nuanced image contexts and relationships
    - Requires Anthropic API key
-   
+
    **Option 2: OPENAI GPT-4o mini**
    - Alternative choice for image categorization
    - Provides good quality categorization capabilities
    - Requires OpenAI API key
-   
+
    > **Note:** You MUST configure ONE of these remote LLMs via API key for the categorization functionality to work properly.
 
 
