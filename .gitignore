@@ -54,3 +54,5 @@ debug/
 *.json
 *.html
 !template.html
+
+ignore_tests/
