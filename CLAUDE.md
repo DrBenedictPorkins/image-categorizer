@@ -11,6 +11,48 @@
 - Install: `uv pip install -e .`
 - Requires either ANTHROPIC_API_KEY or OPENAI_API_KEY as environment variable
 
+## Timeout & Retry Configuration
+
+All LLM providers support configurable timeouts and retry mechanisms to handle network issues and API failures gracefully.
+
+### Environment Variables
+
+**Ollama Provider:**
+- `OLLAMA_TIMEOUT=300` - Request timeout in seconds (default: 300)
+- `OLLAMA_MAX_RETRIES=2` - Maximum retry attempts (default: 2)
+- `OLLAMA_RETRY_DELAY=1.0` - Base delay between retries in seconds (default: 1.0)
+
+**Anthropic Provider:**
+- `ANTHROPIC_TIMEOUT=120` - Request timeout in seconds (default: 120)
+- `ANTHROPIC_MAX_RETRIES=3` - Maximum retry attempts (default: 3)
+- `ANTHROPIC_RETRY_DELAY=1.0` - Base delay between retries in seconds (default: 1.0)
+
+**OpenAI Provider:**
+- `OPENAI_TIMEOUT=120` - Request timeout in seconds (default: 120)
+- `OPENAI_MAX_RETRIES=3` - Maximum retry attempts (default: 3)
+- `OPENAI_RETRY_DELAY=1.0` - Base delay between retries in seconds (default: 1.0)
+
+### Retry Behavior
+
+- **Exponential Backoff**: Retry delays increase exponentially (delay × 2^attempt)
+- **Automatic Fallback**: If all retries fail, fallback categorization is applied
+- **Progress Reporting**: Retry attempts are logged with attempt numbers and error details
+- **YAML/JSON Validation**: Format failures trigger retries with cleaner prompts
+
+### Example Configuration
+
+```bash
+# For long-running or complex images
+export OLLAMA_TIMEOUT=600
+export OLLAMA_MAX_RETRIES=5
+export OLLAMA_RETRY_DELAY=2.0
+
+# For faster APIs with network instability
+export ANTHROPIC_TIMEOUT=60
+export ANTHROPIC_MAX_RETRIES=5
+export ANTHROPIC_RETRY_DELAY=0.5
+```
+
 ## Commands
 - Run: `python main.py <directory_path>`
 - Use existing JSON: `python main.py <directory_path> --json <json_file>`

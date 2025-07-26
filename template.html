@@ -188,7 +188,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: white;
+            /* background-color: white; -- removed, let subclasses handle background */
             border-radius: 6px;
             padding: 12px 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.03);
@@ -198,13 +198,36 @@
             width: calc(25% - 10px); /* Fixed width calculation accounting for gap */
             box-sizing: border-box;
         }
+
+        /* Default white background for categories without specific classes */
+        .category-stat-item:not(.suggested-category):not(.manual-category):not(.trash-category-stat) {
+            background-color: white;
+        }
         
         /* Border colors will be set via JavaScript */
         
         .category-stat-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 10px rgba(0,0,0,0.06);
-            background-color: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Background colors for suggested categories */
+        .category-stat-item.suggested-category {
+            background-color: rgba(147, 197, 253, 0.25) !important; /* Light blue background */
+        }
+
+        /* Background colors for manually added categories */
+        .category-stat-item.manual-category {
+            background-color: rgba(34, 197, 94, 0.6) !important; /* More visible green background */
+        }
+
+        /* Background colors for main category containers */
+        .category-container.manual-category-container {
+            background-color: rgba(34, 197, 94, 0.1) !important; /* Light green background for manual categories */
+        }
+
+        .category-container.suggested-category-container {
+            background-color: rgba(147, 197, 253, 0.1) !important; /* Light blue background for suggested categories */
         }
 
         /* Special styling for Trash category in summary */
@@ -251,29 +274,23 @@
         
         /* Make image previews in Trash category 50% smaller */
         .category-container[data-category="Trash"] .image-card {
-            transform: scale(0.5);
-            transform-origin: center top;
-            margin: -25px -50px; /* Adjust margins to prevent big gaps */
             opacity: 0.8; /* Slightly faded appearance */
             transition: all 0.2s ease;
-            height: 50%; /* Reduce height */
         }
         
         .category-container[data-category="Trash"] .image-card:hover {
-            transform: scale(0.55); /* Slightly larger on hover */
             opacity: 1;
             z-index: 1; /* Bring to front when hovered */
             box-shadow: 0 8px 16px rgba(0,0,0,0.15);
         }
         
-        /* Make images in Trash category more compact */
-        .category-container[data-category="Trash"] .category-images {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0;
-            padding: 20px 0;
+        
+        .category-container[data-category="Trash"] .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
+        
         
         /* Special styling for the "Deleted Items" title in Trash category */
         .category-container[data-category="Trash"] .category-title-text {
@@ -428,36 +445,45 @@
             transform: scale(1.1);
         }
         
-        /* Restore icon styling */
+        /* Restore icon styling - more prominent for primary action */
         .restore-icon {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 24px;
-            height: 24px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
+            top: 5px;
+            right: 5px;
+            width: 32px;
+            height: 32px;
+            background-color: rgba(40, 167, 69, 0.9); /* Prominent green background */
+            border-radius: 8px; /* Rounded square instead of circle */
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 16px;
-            opacity: 0.3;
+            font-size: 18px;
+            opacity: 0.8; /* More visible by default */
             z-index: 10;
-            transition: all 0.2s ease;
-            border: none;
-            color: #28a745; /* Green color */
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            color: white; /* White icon on green background */
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            animation: subtlePulse 2s infinite;
+        }
+        
+        /* Subtle pulsing animation to draw attention */
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
         }
         
         .image-container:hover .restore-icon {
-            opacity: 0.7;
+            opacity: 1;
+            animation: none; /* Stop pulsing on hover */
         }
         
         .restore-icon:hover {
             opacity: 1 !important;
-            background-color: rgba(255, 255, 255, 0.95);
-            transform: scale(1.1);
-            color: #1e7e34; /* Darker green on hover */
+            background-color: rgba(34, 139, 58, 1); /* Darker green on hover */
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.5);
         }
 
         .image-container:hover::after {
@@ -755,6 +781,80 @@
             line-height: 1.5;
             border-top: 1px solid #eee;
             padding-top: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .description:hover {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        /* Description popup styles */
+        .description-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .popup-content {
+            background: white;
+            border-radius: 8px;
+            max-width: 600px;
+            max-height: 80vh;
+            padding: 20px;
+            margin: 20px;
+            position: relative;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .popup-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+        
+        .popup-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .popup-close:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .popup-description {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #555;
+            font-size: 0.95em;
         }
         .footer {
             text-align: center;
@@ -1928,7 +2028,7 @@
                     // Add restore icon for items in Trash
                     const restoreIcon = document.createElement('button');
                     restoreIcon.className = 'restore-icon';
-                    restoreIcon.innerHTML = '↩️'; // Curved arrow for restore
+                    restoreIcon.innerHTML = '⟲'; // Circular arrow for restore
                     restoreIcon.title = 'Restore from Trash';
                     
                     // Store original category if available (for restore functionality)
@@ -2002,7 +2102,8 @@
                         // Create new category container
                         const newCategoryContainer = createCategoryContainer({
                             name: newCategory,
-                            count: 0
+                            count: 0,
+                            isSuggested: true
                         });
                         
                         // Add to window.categoriesData
@@ -2014,26 +2115,20 @@
                             count: 0
                         });
                         
-                        // Insert in DOM in alphabetical order (before Trash)
+                        // Insert in DOM - simple approach: remove Trash, add new, re-add Trash
                         const categoriesContainer = document.querySelector('.categories-container');
                         const trashContainer = document.querySelector('.category-container[data-category="Trash"]');
                         
-                        // Find the correct position to insert alphabetically
-                        const allContainers = Array.from(categoriesContainer.querySelectorAll('.category-container'));
-                        let insertBefore = trashContainer;
-                        
-                        for (let container of allContainers) {
-                            const catName = container.dataset.category;
-                            if (catName !== 'Trash' && catName.toLowerCase() > newCategory.toLowerCase()) {
-                                insertBefore = container;
-                                break;
-                            }
+                        if (trashContainer) {
+                            trashContainer.remove();
                         }
                         
-                        if (insertBefore) {
-                            categoriesContainer.insertBefore(newCategoryContainer, insertBefore);
-                        } else {
-                            categoriesContainer.appendChild(newCategoryContainer);
+                        // Add the new category container
+                        categoriesContainer.appendChild(newCategoryContainer);
+                        
+                        // Re-add Trash at the end if it existed
+                        if (trashContainer) {
+                            categoriesContainer.appendChild(trashContainer);
                         }
                         
                         // Update dragula containers if dragula exists
@@ -2042,8 +2137,8 @@
                             window.drake.containers.push(newImagesContainer);
                         }
                         
-                        // Update the summary section with new category
-                        updateCategorySummary(newCategory);
+                        // Update the summary section with new category (suggested)
+                        updateCategorySummary(newCategory, true);
                         
                         // Get the new target container
                         targetContainer = newCategoryContainer.querySelector('.category-images');
@@ -2063,6 +2158,57 @@
 
                     // Update data attribute
                     cardElement.dataset.category = newCategory;
+
+                    // Handle icon swapping when moving FROM or TO Trash category
+                    const imageContainer = cardElement.querySelector('.image-container');
+                    if (imageContainer) {
+                        if (currentCategory === 'Trash' && newCategory !== 'Trash') {
+                            // Moving FROM Trash to another category - replace restore icon with trash icon
+                            const restoreIcon = imageContainer.querySelector('.restore-icon');
+                            if (restoreIcon) {
+                                restoreIcon.remove();
+                            }
+                            
+                            // Add trash icon
+                            const trashIcon = document.createElement('button');
+                            trashIcon.className = 'trash-icon';
+                            trashIcon.innerHTML = '🗑️';
+                            trashIcon.title = 'Move to Trash';
+                            
+                            // Add click handler to move to Trash category
+                            trashIcon.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                moveToTrash(cardElement);
+                            });
+                            
+                            imageContainer.appendChild(trashIcon);
+                        } else if (currentCategory !== 'Trash' && newCategory === 'Trash') {
+                            // Moving TO Trash from another category - replace trash icon with restore icon
+                            const trashIcon = imageContainer.querySelector('.trash-icon');
+                            if (trashIcon) {
+                                trashIcon.remove();
+                            }
+                            
+                            // Add restore icon
+                            const restoreIcon = document.createElement('button');
+                            restoreIcon.className = 'restore-icon';
+                            restoreIcon.innerHTML = '⟲';
+                            restoreIcon.title = 'Restore from Trash';
+                            
+                            // Store original category for restore functionality
+                            cardElement.dataset.originalCategory = currentCategory;
+                            
+                            // Add click handler to restore from Trash
+                            restoreIcon.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                restoreFromTrash(cardElement);
+                            });
+                            
+                            imageContainer.appendChild(restoreIcon);
+                        }
+                    }
 
                     // Immediately update the select dropdown to show the new category as current
                     const select = cardElement.querySelector('.category-select');
@@ -2141,6 +2287,11 @@
             const descriptionDiv = document.createElement('div');
             descriptionDiv.className = 'description';
             descriptionDiv.textContent = data.description;
+            descriptionDiv.setAttribute('data-filename', data.filename);
+            descriptionDiv.setAttribute('data-full-description', data.description);
+            descriptionDiv.onclick = function() {
+                showDescriptionPopup(data.filename, data.description);
+            };
 
             // Add all elements to card content
             cardContent.appendChild(categoryDiv);
@@ -2206,12 +2357,12 @@
                     // Add suggested categories section
                     const suggestedCategories = JSON.parse(card.dataset.suggestedCategories || '[]');
                     if (suggestedCategories.length > 0) {
-                        // Filter out suggested categories that already exist in allCategories
-                        const uniqueSuggested = suggestedCategories.filter(sugCat => 
-                            !allCategories.includes(sugCat) && sugCat !== currentCategory
+                        // Keep ALL suggested categories - do not filter out existing ones
+                        const validSuggested = suggestedCategories.filter(sugCat => 
+                            sugCat !== currentCategory // Only exclude current category
                         );
                         
-                        if (uniqueSuggested.length > 0) {
+                        if (validSuggested.length > 0) {
                             // Add separator
                             const separator = document.createElement('option');
                             separator.disabled = true;
@@ -2220,7 +2371,7 @@
                             select.appendChild(separator);
                             
                             // Add suggested categories
-                            uniqueSuggested.forEach(sugCat => {
+                            validSuggested.forEach(sugCat => {
                                 const option = document.createElement('option');
                                 option.value = sugCat;
                                 option.textContent = sugCat;
@@ -2286,6 +2437,55 @@
             window.rebuildCategorySelects();
         };
 
+        // Description popup functions
+        window.showDescriptionPopup = function(filename, description) {
+            // Create popup overlay
+            const popup = document.createElement('div');
+            popup.className = 'description-popup';
+            
+            // Create popup content
+            const popupContent = document.createElement('div');
+            popupContent.className = 'popup-content';
+            
+            // Create header with title and close button
+            const header = document.createElement('div');
+            header.className = 'popup-header';
+            
+            const title = document.createElement('div');
+            title.className = 'popup-title';
+            title.textContent = filename;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'popup-close';
+            closeBtn.innerHTML = '×';
+            closeBtn.onclick = function() {
+                document.body.removeChild(popup);
+            };
+            
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+            
+            // Create description content
+            const descriptionContent = document.createElement('div');
+            descriptionContent.className = 'popup-description';
+            descriptionContent.textContent = description;
+            
+            // Assemble popup
+            popupContent.appendChild(header);
+            popupContent.appendChild(descriptionContent);
+            popup.appendChild(popupContent);
+            
+            // Add click-outside-to-close functionality
+            popup.onclick = function(e) {
+                if (e.target === popup) {
+                    document.body.removeChild(popup);
+                }
+            };
+            
+            // Add to page
+            document.body.appendChild(popup);
+        };
+
         // Initialize the data for our app
         // Function to track scroll position and show/hide back to top button
         function setupScrollTracking() {
@@ -2325,19 +2525,32 @@
         }
 
         // Global function to update summary section with new category
-        function updateCategorySummary(newCategoryName) {
+        function updateCategorySummary(newCategoryName, isSuggested = false) {
+            console.log(`Adding new category to summary: ${newCategoryName}, isSuggested: ${isSuggested}`);
             const categorySummary = document.querySelector('.category-stats');
             if (categorySummary) {
                 // Get all existing category names to determine insertion position
-                const existingCategoryNames = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
+                const allCategoryNames = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
                     .map(elem => elem.textContent);
-                existingCategoryNames.push(newCategoryName);
-                // Sort all names alphabetically
-                existingCategoryNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-                // Find the index of our new category
-                const newCategoryIndex = existingCategoryNames.indexOf(newCategoryName);
+                
+                console.log('Existing categories:', allCategoryNames);
+                
+                // Separate Trash from other categories
+                const trashCategories = allCategoryNames.filter(name => name === 'Trash' || name === 'Deleted Items');
+                const regularCategories = allCategoryNames.filter(name => name !== 'Trash' && name !== 'Deleted Items');
+                
+                // Add new category to regular categories and sort
+                regularCategories.push(newCategoryName);
+                regularCategories.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                
+                // Find the index of our new category in the regular categories list
+                const newCategoryIndex = regularCategories.indexOf(newCategoryName);
+                console.log(`New category index in regular categories: ${newCategoryIndex}`);
                 const newStatItem = document.createElement('div');
-                newStatItem.className = 'category-stat-item';
+                // Add base class and suggested/manual distinction
+                newStatItem.className = isSuggested ? 
+                    'category-stat-item suggested-category' : 
+                    'category-stat-item manual-category';
 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'category-stat-name';
@@ -2350,16 +2563,24 @@
                 newStatItem.appendChild(nameSpan);
                 newStatItem.appendChild(countSpan);
 
-                // Insert in the correct alphabetical position
-                if (newCategoryIndex === existingCategoryNames.length - 1) {
-                    // Last element, just append
-                    categorySummary.appendChild(newStatItem);
+                // Insert in the correct alphabetical position, but before any Trash categories
+                const trashElement = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
+                    .find(elem => elem.textContent === 'Trash' || elem.textContent === 'Deleted Items');
+                
+                if (newCategoryIndex === regularCategories.length - 1) {
+                    // Last regular element - insert before Trash or append if no Trash
+                    if (trashElement) {
+                        const trashStatItem = trashElement.closest('.category-stat-item');
+                        categorySummary.insertBefore(newStatItem, trashStatItem);
+                    } else {
+                        categorySummary.appendChild(newStatItem);
+                    }
                 } else if (newCategoryIndex === 0) {
                     // First element, insert at beginning
                     categorySummary.insertBefore(newStatItem, categorySummary.firstChild);
                 } else {
                     // Middle element, find the element after which we should insert
-                    const prevCategoryName = existingCategoryNames[newCategoryIndex - 1];
+                    const prevCategoryName = regularCategories[newCategoryIndex - 1];
                     const prevCategoryElement = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
                         .find(elem => elem.textContent === prevCategoryName);
                     if (prevCategoryElement) {
@@ -2376,6 +2597,60 @@
 
                 // Assign color to the new category and apply styling
                 assignColorToNewCategory(newCategoryName, newStatItem);
+                
+                // Force preserve the background color class with inline style as backup
+                const targetColor = isSuggested ? 'rgba(147, 197, 253, 0.25)' : 'rgba(34, 197, 94, 0.6)';
+                const categoryType = isSuggested ? 'suggested' : 'manual';
+                
+                // Set background color
+                newStatItem.style.backgroundColor = targetColor;
+                console.log(`Applied ${categoryType} category background:`, targetColor);
+                
+                // Add debugging to track when background color changes
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.attributeName === 'style') {
+                            const currentBg = newStatItem.style.backgroundColor;
+                            const computedBg = window.getComputedStyle(newStatItem).backgroundColor;
+                            console.log(`STYLE CHANGED for ${newCategoryName}:`, 
+                                       `inline bg: "${currentBg}"`, 
+                                       `computed bg: "${computedBg}"`,
+                                       `classList: "${newStatItem.className}"`);
+                            console.trace('Style change stack trace');
+                        }
+                        if (mutation.attributeName === 'class') {
+                            console.log(`CLASS CHANGED for ${newCategoryName}:`, 
+                                       `new classes: "${newStatItem.className}"`);
+                            console.trace('Class change stack trace');
+                        }
+                    });
+                });
+                observer.observe(newStatItem, { 
+                    attributes: true, 
+                    attributeFilter: ['style', 'class'],
+                    childList: true,
+                    subtree: true 
+                });
+                
+                // Also monitor computed style changes periodically
+                let lastComputedBg = window.getComputedStyle(newStatItem).backgroundColor;
+                const styleMonitor = setInterval(function() {
+                    const currentComputedBg = window.getComputedStyle(newStatItem).backgroundColor;
+                    if (currentComputedBg !== lastComputedBg) {
+                        console.log(`COMPUTED STYLE CHANGED for ${newCategoryName}:`,
+                                   `from "${lastComputedBg}" to "${currentComputedBg}"`,
+                                   `inline: "${newStatItem.style.backgroundColor}"`,
+                                   `classes: "${newStatItem.className}"`);
+                        console.trace('Computed style change detected');
+                        lastComputedBg = currentComputedBg;
+                    }
+                }, 500); // Check every 500ms
+                
+                // Stop monitoring after 10 seconds to avoid infinite monitoring
+                setTimeout(() => {
+                    clearInterval(styleMonitor);
+                    observer.disconnect();
+                }, 10000);
 
                 // Add click handler for jump-to-category functionality
                 newStatItem.addEventListener('click', function() {
@@ -2440,6 +2715,7 @@
                 statItem.style.borderLeftColor = color;
                 statItem.querySelector('.category-stat-name').style.color = color;
                 statItem.querySelector('.category-stat-count').style.backgroundColor = color;
+                // Don't override background-color - let CSS classes handle it
             }
 
             // Apply styling to the main category container if it exists
@@ -2464,9 +2740,18 @@
         // Global function to create a category container
         function createCategoryContainer(categoryData) {
             const container = document.createElement('div');
-            // Add special class for Trash container
-            container.className = categoryData.name === 'Trash' ? 
-                'category-container trash-category' : 'category-container';
+            // Add special classes based on category type
+            let containerClasses = 'category-container';
+            
+            if (categoryData.name === 'Trash') {
+                containerClasses += ' trash-category';
+            } else if (categoryData.isManual) {
+                containerClasses += ' manual-category-container';
+            } else if (categoryData.isSuggested) {
+                containerClasses += ' suggested-category-container';
+            }
+            
+            container.className = containerClasses;
             container.dataset.category = categoryData.name;
             container.dataset.totalImages = categoryData.count;
             container.dataset.visibleImages = categoryData.count; // Show all images
@@ -2761,7 +3046,7 @@
                                     console.log("Adding restore icon");
                                     const restoreIcon = document.createElement('button');
                                     restoreIcon.className = 'restore-icon';
-                                    restoreIcon.innerHTML = '↩️';
+                                    restoreIcon.innerHTML = '⟲';
                                     restoreIcon.title = 'Restore from Trash';
                                     
                                     // Add click handler to restore from Trash
@@ -3177,14 +3462,36 @@
                 });
                 
                 // Apply colors to the category list and main category sections
+                console.log('COLOR REAPPLICATION: Running color initialization on all category-stat-items');
                 document.querySelectorAll('.category-stat-item').forEach(item => {
                     const name = item.querySelector('.category-stat-name').textContent.trim();
                     const color = categoryColorMap[name] || '#3b82f6'; // Default to blue if not found
+                    
+                    console.log(`COLOR REAPPLICATION: Processing category "${name}" with classes:`, item.className);
+                    const beforeBg = item.style.backgroundColor;
                     
                     // Apply color to category stat item
                     item.style.borderLeftColor = color;
                     item.querySelector('.category-stat-name').style.color = color;
                     item.querySelector('.category-stat-count').style.backgroundColor = color;
+                    
+                    // Preserve suggested/manual category background colors
+                    if (item.classList.contains('suggested-category')) {
+                        // Preserve suggested category background
+                        item.style.backgroundColor = 'rgba(147, 197, 253, 0.25)';
+                        console.log(`COLOR REAPPLICATION: Preserved suggested background for "${name}"`);
+                    } else if (item.classList.contains('manual-category')) {
+                        // Preserve manual category background
+                        item.style.backgroundColor = 'rgba(34, 197, 94, 0.6)';
+                        console.log(`COLOR REAPPLICATION: Preserved manual background for "${name}"`);
+                    } else {
+                        console.log(`COLOR REAPPLICATION: No special background for "${name}" (classes: ${item.className})`);
+                    }
+                    
+                    const afterBg = item.style.backgroundColor;
+                    if (beforeBg !== afterBg) {
+                        console.log(`COLOR REAPPLICATION: Background changed for "${name}": "${beforeBg}" -> "${afterBg}"`);
+                    }
                 });
                 
                 // Apply colors to main category sections
@@ -3363,42 +3670,30 @@
             // Create a new category container
             const categoriesContainer = document.querySelector('.categories-container');
 
-            // Function to create a category container (copied from earlier)
-            function createCategoryContainer(name) {
-                const container = document.createElement('div');
-                container.className = 'category-container';
-                container.dataset.category = name;
-                container.dataset.totalImages = 0;
-                container.dataset.visibleImages = 0; // Will be updated automatically
-
-                const header = document.createElement('div');
-                header.className = 'category-header';
-
-                const title = document.createElement('h2');
-                title.className = 'category-title';
-                title.textContent = name;
-
-                const count = document.createElement('span');
-                count.className = 'category-count';
-                count.textContent = '0';
-
-                const imagesContainer = document.createElement('div');
-                imagesContainer.className = 'category-images';
-
-                header.appendChild(title);
-                header.appendChild(count);
-                container.appendChild(header);
-                container.appendChild(imagesContainer);
-
-
-                return container;
+            // Add the new category container - simple approach: remove Trash, add new, re-add Trash
+            const trashContainer = document.querySelector('.category-container[data-category="Trash"]');
+            if (trashContainer) {
+                trashContainer.remove();
+            }
+            
+            // Create category data object for the new category
+            const newCategoryData = {
+                name: newCategoryName,
+                count: 0,
+                images: [],
+                isManual: true
+            };
+            
+            // Add the new category container using the main function that includes edit/delete buttons
+            categoriesContainer.appendChild(createCategoryContainer(newCategoryData));
+            
+            // Re-add Trash at the end if it existed
+            if (trashContainer) {
+                categoriesContainer.appendChild(trashContainer);
             }
 
-            // Add the new category container
-            categoriesContainer.appendChild(createCategoryContainer(newCategoryName));
-
-            // Update the summary section with new category using reusable function
-            updateCategorySummary(newCategoryName);
+            // Update the summary section with new category using reusable function (manual)
+            updateCategorySummary(newCategoryName, false);
 
             // Close the modal
             document.getElementById('category-modal').style.display = 'none';
@@ -3584,7 +3879,7 @@
             if (imageContainer) {
                 const restoreIcon = document.createElement('button');
                 restoreIcon.className = 'restore-icon';
-                restoreIcon.innerHTML = '↩️';
+                restoreIcon.innerHTML = '⟲';
                 restoreIcon.title = 'Restore from Trash';
                 
                 // Add click handler to restore from Trash
@@ -4060,18 +4355,18 @@
             categoryContainer.style.borderWidth = '';
             categoryContainer.style.transform = '';
             
-            // Apply subtle visual changes based on count
+            // Apply subtle visual changes based on count, but maintain minimum visibility
             if (count === 0) {
-                // Empty categories
-                categoryContainer.style.opacity = '0.5';
+                // Empty categories - keep more visible for background colors
+                categoryContainer.style.opacity = '0.8';
                 categoryContainer.style.borderWidth = '1px';
             } else if (count < 3) {
                 // Few items (1-2)
-                categoryContainer.style.opacity = '0.7';
+                categoryContainer.style.opacity = '0.85';
                 categoryContainer.style.borderWidth = '2px';
             } else if (count < 6) {
                 // Medium number of items (3-5)
-                categoryContainer.style.opacity = '0.85';
+                categoryContainer.style.opacity = '0.9';
                 categoryContainer.style.borderWidth = '3px';
             } else {
                 // Many items (6+)
@@ -4213,10 +4508,13 @@
                         return nameA.toLowerCase().localeCompare(nameB.toLowerCase());
                     });
 
-                    // Reorder items in the DOM
+                    // Reorder items in the DOM while preserving classes
                     if (parentList) {
                         allStatItems.forEach(item => {
+                            // Preserve classes when moving elements
+                            const originalClasses = item.className;
                             parentList.appendChild(item);
+                            item.className = originalClasses;
                         });
                     }
                 }

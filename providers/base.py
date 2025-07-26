@@ -7,6 +7,7 @@ This module defines the abstract base class that all LLM providers must implemen
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Callable, Optional
 from pathlib import Path
+import time
 
 from models.image_data import CategorizationResult, ProviderConfig
 
@@ -70,7 +71,8 @@ class BaseLLMProvider(ABC):
     def process_images(
         self, 
         image_paths: List[str], 
-        progress_callback: Optional[Callable[[str, float], None]] = None
+        progress_callback: Optional[Callable[[str, float], None]] = None,
+        initial_categories: Optional[List[str]] = None
     ) -> CategorizationResult:
         """
         Process a list of images: describe AND categorize them.
@@ -84,6 +86,7 @@ class BaseLLMProvider(ABC):
         Args:
             image_paths: List of absolute paths to image files
             progress_callback: Optional callback for progress updates (message, progress_0_to_1)
+            initial_categories: Optional list of initial category suggestions for the LLM
         
         Returns:
             CategorizationResult containing all processed images and categorization
@@ -176,6 +179,49 @@ class BaseLLMProvider(ABC):
             valid_paths.append(path)
         
         return valid_paths
+    
+    def _retry_with_exponential_backoff(
+        self, 
+        func: Callable, 
+        max_retries: int = 3, 
+        retry_delay: float = 1.0, 
+        retry_exceptions: tuple = (Exception,),
+        operation_name: str = "operation"
+    ):
+        """
+        Retry a function with exponential backoff.
+        
+        Args:
+            func: Function to retry
+            max_retries: Maximum number of retry attempts
+            retry_delay: Base delay between retries in seconds
+            retry_exceptions: Tuple of exceptions that should trigger a retry
+            operation_name: Human-readable name for logging
+            
+        Returns:
+            Result of the function call
+            
+        Raises:
+            The last exception if all retries fail
+        """
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                return func()
+            except retry_exceptions as e:
+                last_exception = e
+                if attempt < max_retries - 1:
+                    delay = retry_delay * (2 ** attempt)
+                    print(f"{operation_name} failed, retrying... (attempt {attempt + 1}/{max_retries}, Error: {e})")
+                    time.sleep(delay)
+                    continue
+                else:
+                    print(f"{operation_name} failed after {max_retries} attempts: {e}")
+                    break
+        
+        # All attempts failed
+        raise last_exception
 
 
 class ProviderError(Exception):

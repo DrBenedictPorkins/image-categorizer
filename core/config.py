@@ -27,7 +27,9 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
         settings = {
             'host': os.getenv('OLLAMA_HOST', 'http://localhost:11434'),
             'model': os.getenv('OLLAMA_MODEL', 'llama3.2-vision:latest'),
-            'timeout': int(os.getenv('OLLAMA_TIMEOUT', '300'))
+            'timeout': int(os.getenv('OLLAMA_TIMEOUT', '300')),
+            'max_retries': int(os.getenv('OLLAMA_MAX_RETRIES', '2')),
+            'retry_delay': float(os.getenv('OLLAMA_RETRY_DELAY', '1.0'))
         }
         return ProviderConfig(provider_name='ollama', settings=settings)
     
@@ -40,7 +42,10 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
             'api_key': api_key,
             'model': os.getenv('ANTHROPIC_MODEL', 'claude-3-7-sonnet-20250219'),
             'max_tokens': int(os.getenv('ANTHROPIC_MAX_TOKENS', '2000')),
-            'temperature': float(os.getenv('ANTHROPIC_TEMPERATURE', '0.2'))
+            'temperature': float(os.getenv('ANTHROPIC_TEMPERATURE', '0.2')),
+            'timeout': int(os.getenv('ANTHROPIC_TIMEOUT', '120')),
+            'max_retries': int(os.getenv('ANTHROPIC_MAX_RETRIES', '3')),
+            'retry_delay': float(os.getenv('ANTHROPIC_RETRY_DELAY', '1.0'))
         }
         return ProviderConfig(provider_name='anthropic', settings=settings)
     
@@ -53,7 +58,10 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
             'api_key': api_key,
             'model': os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
             'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '2000')),
-            'temperature': float(os.getenv('OPENAI_TEMPERATURE', '0.2'))
+            'temperature': float(os.getenv('OPENAI_TEMPERATURE', '0.2')),
+            'timeout': int(os.getenv('OPENAI_TIMEOUT', '120')),
+            'max_retries': int(os.getenv('OPENAI_MAX_RETRIES', '3')),
+            'retry_delay': float(os.getenv('OPENAI_RETRY_DELAY', '1.0'))
         }
         return ProviderConfig(provider_name='openai', settings=settings)
     

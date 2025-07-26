@@ -22,6 +22,39 @@ from models.image_data import CategorizationResult, ImageData
 from providers import BaseLLMProvider, OllamaProvider
 
 
+def load_initial_categories(categories_input: str) -> list[str]:
+    """
+    Load initial categories from comma-separated string or file path.
+    
+    Args:
+        categories_input: Either a comma-separated list of categories or a file path
+                         containing one category per line
+    
+    Returns:
+        List of cleaned category strings
+    
+    Raises:
+        FileNotFoundError: If file path provided but file doesn't exist
+        ValueError: If no valid categories found
+    """
+    # Check if input is a file path
+    if os.path.isfile(categories_input):
+        # Read file, strip whitespace, filter empty lines
+        with open(categories_input, 'r', encoding='utf-8') as f:
+            categories = [line.strip() for line in f if line.strip()]
+    elif ',' in categories_input or not ('.' in categories_input or '/' in categories_input):
+        # Parse comma-separated values, strip whitespace
+        categories = [cat.strip() for cat in categories_input.split(',') if cat.strip()]
+    else:
+        # Treat as potential file path that doesn't exist
+        raise FileNotFoundError(f"File not found: {categories_input}")
+    
+    if not categories:
+        raise ValueError("No valid categories found in input")
+    
+    return categories
+
+
 def get_provider_class(provider_name: str) -> type:
     """Get the provider class for the given provider name."""
     provider_classes = {
@@ -76,7 +109,7 @@ def initialize_provider(provider_name: str) -> BaseLLMProvider:
         sys.exit(1)
 
 
-def process_images_with_provider(directory: str, provider: BaseLLMProvider) -> CategorizationResult:
+def process_images_with_provider(directory: str, provider: BaseLLMProvider, initial_categories: Optional[list[str]] = None) -> CategorizationResult:
     """Process images using the initialized provider."""
     
     # Discover images
@@ -113,7 +146,7 @@ def process_images_with_provider(directory: str, provider: BaseLLMProvider) -> C
     
     # Process images with provider
     try:
-        result = provider.process_images(valid_paths, progress_callback)
+        result = provider.process_images(valid_paths, progress_callback, initial_categories)
         print(f"\n✓ Successfully processed {len(result.images)} images")
         print(f"✓ Generated {len(result.category_groups)} categories")
         return result
@@ -172,6 +205,9 @@ def main():
     parser.add_argument("--no-html", action="store_true",
                         help="Skip opening HTML report in browser")
 
+    parser.add_argument("--init-categories",
+                        help="Initial category suggestions (comma-separated list or file path with one category per line)")
+
     args = parser.parse_args()
 
     # Validate directory
@@ -189,12 +225,22 @@ def main():
     print("AI Image Categorizer")
     print("===================")
 
+    # Load initial categories if provided
+    initial_categories = None
+    if args.init_categories:
+        try:
+            initial_categories = load_initial_categories(args.init_categories)
+            print(f"Loaded {len(initial_categories)} initial categories: {', '.join(initial_categories)}")
+        except (FileNotFoundError, ValueError) as e:
+            print(f"Error loading initial categories: {e}")
+            sys.exit(1)
+
     # Initialize provider
     provider = initialize_provider(args.provider)
 
     try:
         # Process images
-        result = process_images_with_provider(args.directory, provider)
+        result = process_images_with_provider(args.directory, provider, initial_categories)
         if not result:
             sys.exit(1)
 

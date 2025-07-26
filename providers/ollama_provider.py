@@ -10,6 +10,7 @@ import base64
 import ollama
 import textwrap
 import yaml
+import time
 from io import BytesIO
 from typing import List, Dict, Any, Callable, Optional
 from pathlib import Path
@@ -27,6 +28,8 @@ class OllamaProvider(BaseLLMProvider):
         self.client = None
         self.model = None
         self.timeout = 300
+        self.max_retries = 2
+        self.retry_delay = 1.0
     
     @property
     def provider_name(self) -> str:
@@ -46,6 +49,8 @@ class OllamaProvider(BaseLLMProvider):
             host = self.config.get('host', 'http://localhost:11434')
             self.model = self.config.get('model', 'llama3.2-vision:latest')
             self.timeout = self.config.get('timeout', 300)
+            self.max_retries = self.config.get('max_retries', 2)
+            self.retry_delay = self.config.get('retry_delay', 1.0)
             
             # Create Ollama client
             self.client = ollama.Client(host=host)
@@ -93,7 +98,8 @@ class OllamaProvider(BaseLLMProvider):
     def process_images(
         self, 
         image_paths: List[str], 
-        progress_callback: Optional[Callable[[str, float], None]] = None
+        progress_callback: Optional[Callable[[str, float], None]] = None,
+        initial_categories: Optional[List[str]] = None
     ) -> CategorizationResult:
         """Process images with Ollama for description and categorization."""
         
@@ -119,7 +125,7 @@ class OllamaProvider(BaseLLMProvider):
             )
             
             try:
-                description_data = self._describe_image(image_path)
+                description_data = self._describe_image(image_path, initial_categories)
                 image_data = ImageData(
                     filename=Path(image_path).name,
                     filepath=image_path,
@@ -170,7 +176,7 @@ class OllamaProvider(BaseLLMProvider):
         self._report_progress(progress_callback, "Processing complete!", 1.0)
         return result
     
-    def _describe_image(self, image_path: str) -> Dict[str, Any]:
+    def _describe_image(self, image_path: str, initial_categories: Optional[List[str]] = None) -> Dict[str, Any]:
         """Generate a structured description for a single image using Ollama with retry on format failure."""
         
         # Load and encode image once
@@ -182,9 +188,20 @@ class OllamaProvider(BaseLLMProvider):
         except Exception as e:
             raise ProviderProcessingError(f"Failed to process image {image_path}: {e}")
         
-        # Clean structured YAML prompt
-        description_prompt = textwrap.dedent("""
-            Create a factual description for image categorization and suggest 2-5 initial categories.
+        # Build description prompt with optional initial categories guidance
+        base_prompt = "Create a factual description for image categorization and suggest 2-5 initial categories."
+        
+        # Add initial categories guidance if provided
+        categories_guidance = ""
+        if initial_categories:
+            categories_list = ", ".join(initial_categories)
+            categories_guidance = f"""
+            
+            CATEGORY GUIDANCE: The user has provided these general categories as suggestions: {categories_list}
+            Use these as inspiration but feel free to create more specific or appropriate categories based on what you actually see in the image."""
+        
+        description_prompt = textwrap.dedent(f"""
+            {base_prompt}{categories_guidance}
             
             CRITICAL: Return ONLY the YAML format below. NO markdown, NO code blocks, NO ```yaml, NO explanations.
             Just the raw YAML:
@@ -200,24 +217,26 @@ class OllamaProvider(BaseLLMProvider):
             Base categories only on what's visible. Use the literal block (|) for description to avoid quote issues.
         """).strip()
         
-        # Try up to 2 times (original + 1 retry)
-        for attempt in range(2):
+        # Try up to max_retries times
+        for attempt in range(self.max_retries):
             try:
-                # Make request to Ollama
+                # Make request to Ollama with timeout
                 response = self.client.chat(
                     model=self.model,
                     messages=[{
                         'role': 'user',
                         'content': description_prompt,
                         'images': [image_b64]
-                    }]
+                    }],
+                    options={'timeout': self.timeout}
                 )
                 
                 response_text = response['message']['content'].strip()
                 
                 if not response_text:
-                    if attempt == 0:
-                        print(f"Empty response for {image_path}, retrying...")
+                    if attempt < self.max_retries - 1:
+                        print(f"Empty response for {image_path}, retrying... (attempt {attempt + 1}/{self.max_retries})")
+                        time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                         continue
                     else:
                         break
@@ -240,23 +259,25 @@ class OllamaProvider(BaseLLMProvider):
                     return result
                     
                 except (yaml.YAMLError, ValueError) as e:
-                    if attempt == 0:
-                        print(f"Invalid YAML format for {image_path}, retrying... (Error: {e})")
+                    if attempt < self.max_retries - 1:
+                        print(f"Invalid YAML format for {image_path}, retrying... (attempt {attempt + 1}/{self.max_retries}, Error: {e})")
+                        time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                         continue
                     else:
-                        print(f"Failed to get valid YAML after retry for {image_path}: {e}")
+                        print(f"Failed to get valid YAML after {self.max_retries} attempts for {image_path}: {e}")
                         print(f"DEBUG - Final failed response: {response_text}")
                         break
                         
             except Exception as e:
-                if attempt == 0:
-                    print(f"Request failed for {image_path}, retrying... (Error: {e})")
+                if attempt < self.max_retries - 1:
+                    print(f"Request failed for {image_path}, retrying... (attempt {attempt + 1}/{self.max_retries}, Error: {e})")
+                    time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                     continue
                 else:
-                    print(f"Request failed after retry for {image_path}: {e}")
+                    print(f"Request failed after {self.max_retries} attempts for {image_path}: {e}")
                     break
         
-        # Both attempts failed - return failure marker
+        # All attempts failed - return failure marker
         return {
             "description": "failed",
             "initial_categories": ["Uncategorized"]
@@ -313,23 +334,25 @@ class OllamaProvider(BaseLLMProvider):
             Include ALL filenames in response.
         """).strip()
         
-        # Try up to 2 times (original + 1 retry)
-        for attempt in range(2):
+        # Try up to max_retries times
+        for attempt in range(self.max_retries):
             try:
-                # Make request to Ollama for re-categorization
+                # Make request to Ollama for re-categorization with timeout
                 response = self.client.chat(
                     model=self.model,
                     messages=[{
                         'role': 'user',
                         'content': categorization_prompt
-                    }]
+                    }],
+                    options={'timeout': self.timeout}
                 )
                 
                 response_text = response['message']['content'].strip()
                 
                 if not response_text:
-                    if attempt == 0:
-                        print("Empty re-categorization response, retrying...")
+                    if attempt < self.max_retries - 1:
+                        print(f"Empty re-categorization response, retrying... (attempt {attempt + 1}/{self.max_retries})")
+                        time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                         continue
                     else:
                         break
@@ -379,23 +402,25 @@ class OllamaProvider(BaseLLMProvider):
                     return
                     
                 except (yaml.YAMLError, ValueError) as e:
-                    if attempt == 0:
-                        print(f"Invalid YAML format in re-categorization, retrying... (Error: {e})")
+                    if attempt < self.max_retries - 1:
+                        print(f"Invalid YAML format in re-categorization, retrying... (attempt {attempt + 1}/{self.max_retries}, Error: {e})")
+                        time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                         continue
                     else:
-                        print(f"Failed to get valid YAML after retry in re-categorization: {e}")
+                        print(f"Failed to get valid YAML after {self.max_retries} attempts in re-categorization: {e}")
                         print(f"DEBUG - Final failed re-categorization response: {response_text}")
                         break
                         
             except Exception as e:
-                if attempt == 0:
-                    print(f"Re-categorization request failed, retrying... (Error: {e})")
+                if attempt < self.max_retries - 1:
+                    print(f"Re-categorization request failed, retrying... (attempt {attempt + 1}/{self.max_retries}, Error: {e})")
+                    time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                     continue
                 else:
-                    print(f"Re-categorization failed after retry: {e}")
+                    print(f"Re-categorization failed after {self.max_retries} attempts: {e}")
                     break
         
-        # Both attempts failed - apply fallback categorization to valid images only
+        # All attempts failed - apply fallback categorization to valid images only
         print("Re-categorization failed, applying fallback categorization to valid images")
         self._apply_fallback_categorization(valid_images)
     
