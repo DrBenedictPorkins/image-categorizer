@@ -1889,7 +1889,7 @@
             const card = document.createElement('div');
             card.className = 'image-card';
             card.dataset.id = data.filename;
-            card.dataset.category = data.category;
+            card.dataset.category = data.primary_category;
 
             // Create elements programmatically instead of using innerHTML
             // This ensures event handlers are properly attached
@@ -1923,7 +1923,7 @@
                 imageContainer.appendChild(thumbnail);
 
                 // Add appropriate icon based on category
-                if (data.category === 'Trash') {
+                if (data.primary_category === 'Trash') {
                     // Add restore icon for items in Trash
                     const restoreIcon = document.createElement('button');
                     restoreIcon.className = 'restore-icon';
@@ -2057,8 +2057,8 @@
 
             // Add current category as first option
             const currentOption = document.createElement('option');
-            currentOption.value = data.category;
-            currentOption.textContent = data.category + " (Current)";
+            currentOption.value = data.primary_category;
+            currentOption.textContent = data.primary_category + " (Current)";
             currentOption.selected = true;
             categorySelect.appendChild(currentOption);
 
@@ -2372,10 +2372,10 @@
 
                 // First organize cards by category
                 cardData.forEach(data => {
-                    if (!categorizedCards[data.category]) {
-                        categorizedCards[data.category] = [];
+                    if (!categorizedCards[data.primary_category]) {
+                        categorizedCards[data.primary_category] = [];
                     }
-                    categorizedCards[data.category].push(data);
+                    categorizedCards[data.primary_category].push(data);
                 });
 
                 // Then add cards to their respective containers, with hiding logic

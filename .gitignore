@@ -44,7 +44,7 @@ activate/
 ._*
 
 # OpenAI API key
-.env
+.env.old
 
 # Testing/debugging
 test_images/
