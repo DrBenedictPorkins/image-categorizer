@@ -1890,6 +1890,7 @@
             card.className = 'image-card';
             card.dataset.id = data.filename;
             card.dataset.category = data.primary_category;
+            card.dataset.suggestedCategories = JSON.stringify(data.suggested_categories || []);
 
             // Create elements programmatically instead of using innerHTML
             // This ensures event handlers are properly attached
@@ -1986,9 +1987,75 @@
                     return;
                 }
 
+                // Check if this is a suggested category selection
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.dataset.suggested === 'true') {
+                    console.log("Processing suggested category:", newCategory);
+                    
+                    // Check if category already exists
+                    let targetContainer = document.querySelector('.category-container[data-category="' + newCategory + '"] .category-images');
+                    
+                    if (!targetContainer) {
+                        // Category doesn't exist - create it
+                        console.log("Creating new category container for:", newCategory);
+                        
+                        // Create new category container
+                        const newCategoryContainer = createCategoryContainer({
+                            name: newCategory,
+                            count: 0
+                        });
+                        
+                        // Add to window.categoriesData
+                        if (!window.categoriesData) {
+                            window.categoriesData = [];
+                        }
+                        window.categoriesData.push({
+                            name: newCategory,
+                            count: 0
+                        });
+                        
+                        // Insert in DOM in alphabetical order (before Trash)
+                        const categoriesContainer = document.querySelector('.categories-container');
+                        const trashContainer = document.querySelector('.category-container[data-category="Trash"]');
+                        
+                        // Find the correct position to insert alphabetically
+                        const allContainers = Array.from(categoriesContainer.querySelectorAll('.category-container'));
+                        let insertBefore = trashContainer;
+                        
+                        for (let container of allContainers) {
+                            const catName = container.dataset.category;
+                            if (catName !== 'Trash' && catName.toLowerCase() > newCategory.toLowerCase()) {
+                                insertBefore = container;
+                                break;
+                            }
+                        }
+                        
+                        if (insertBefore) {
+                            categoriesContainer.insertBefore(newCategoryContainer, insertBefore);
+                        } else {
+                            categoriesContainer.appendChild(newCategoryContainer);
+                        }
+                        
+                        // Update dragula containers if dragula exists
+                        if (window.drake) {
+                            const newImagesContainer = newCategoryContainer.querySelector('.category-images');
+                            window.drake.containers.push(newImagesContainer);
+                        }
+                        
+                        // Update the summary section with new category
+                        updateCategorySummary(newCategory);
+                        
+                        // Get the new target container
+                        targetContainer = newCategoryContainer.querySelector('.category-images');
+                    }
+                    
+                    // Now proceed with standard move operation - fall through to regular move logic
+                    console.log("Moving image to suggested category container");
+                }
+
                 console.log("Moving image to category:", newCategory);
 
-                // Find target container
+                // Find target container (will exist now, either originally or just created)
                 const targetContainer = document.querySelector('.category-container[data-category="' + newCategory + '"] .category-images');
                 if (targetContainer) {
                     // Move card to new category
@@ -2135,6 +2202,33 @@
                             select.appendChild(option);
                         }
                     });
+
+                    // Add suggested categories section
+                    const suggestedCategories = JSON.parse(card.dataset.suggestedCategories || '[]');
+                    if (suggestedCategories.length > 0) {
+                        // Filter out suggested categories that already exist in allCategories
+                        const uniqueSuggested = suggestedCategories.filter(sugCat => 
+                            !allCategories.includes(sugCat) && sugCat !== currentCategory
+                        );
+                        
+                        if (uniqueSuggested.length > 0) {
+                            // Add separator
+                            const separator = document.createElement('option');
+                            separator.disabled = true;
+                            separator.textContent = '--- Suggested ---';
+                            separator.dataset.separator = 'true';
+                            select.appendChild(separator);
+                            
+                            // Add suggested categories
+                            uniqueSuggested.forEach(sugCat => {
+                                const option = document.createElement('option');
+                                option.value = sugCat;
+                                option.textContent = sugCat;
+                                option.dataset.suggested = 'true';
+                                select.appendChild(option);
+                            });
+                        }
+                    }
                 }
             });
         };
@@ -2230,6 +2324,229 @@
             });
         }
 
+        // Global function to update summary section with new category
+        function updateCategorySummary(newCategoryName) {
+            const categorySummary = document.querySelector('.category-stats');
+            if (categorySummary) {
+                // Get all existing category names to determine insertion position
+                const existingCategoryNames = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
+                    .map(elem => elem.textContent);
+                existingCategoryNames.push(newCategoryName);
+                // Sort all names alphabetically
+                existingCategoryNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                // Find the index of our new category
+                const newCategoryIndex = existingCategoryNames.indexOf(newCategoryName);
+                const newStatItem = document.createElement('div');
+                newStatItem.className = 'category-stat-item';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'category-stat-name';
+                nameSpan.textContent = newCategoryName;
+
+                const countSpan = document.createElement('span');
+                countSpan.className = 'category-stat-count';
+                countSpan.textContent = '0';
+
+                newStatItem.appendChild(nameSpan);
+                newStatItem.appendChild(countSpan);
+
+                // Insert in the correct alphabetical position
+                if (newCategoryIndex === existingCategoryNames.length - 1) {
+                    // Last element, just append
+                    categorySummary.appendChild(newStatItem);
+                } else if (newCategoryIndex === 0) {
+                    // First element, insert at beginning
+                    categorySummary.insertBefore(newStatItem, categorySummary.firstChild);
+                } else {
+                    // Middle element, find the element after which we should insert
+                    const prevCategoryName = existingCategoryNames[newCategoryIndex - 1];
+                    const prevCategoryElement = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
+                        .find(elem => elem.textContent === prevCategoryName);
+                    if (prevCategoryElement) {
+                        const prevStatItem = prevCategoryElement.closest('.category-stat-item');
+                        if (prevStatItem && prevStatItem.nextSibling) {
+                            categorySummary.insertBefore(newStatItem, prevStatItem.nextSibling);
+                        } else {
+                            categorySummary.appendChild(newStatItem);
+                        }
+                    } else {
+                        categorySummary.appendChild(newStatItem);
+                    }
+                }
+
+                // Assign color to the new category and apply styling
+                assignColorToNewCategory(newCategoryName, newStatItem);
+
+                // Add click handler for jump-to-category functionality
+                newStatItem.addEventListener('click', function() {
+                    const categoryName = this.querySelector('.category-stat-name').textContent.trim();
+                    const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
+
+                    if (categoryContainer) {
+                        categoryContainer.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        // Add a highlight effect that matches the category color
+                        const color = window.categoryColorMap[categoryName] || '#3b82f6';
+                        categoryContainer.style.backgroundColor = `${color}10`; // 10% opacity
+                        // Remove the highlight after 1.5 seconds
+                        setTimeout(() => {
+                            categoryContainer.style.backgroundColor = '';
+                        }, 1500);
+                    }
+                });
+            }
+        }
+
+        // Function to assign color to newly created category and apply styling
+        function assignColorToNewCategory(categoryName, statItem) {
+            // Get or initialize the global categoryColorMap
+            if (!window.categoryColorMap) {
+                window.categoryColorMap = {};
+            }
+
+            // Define category colors (same as initialization)
+            const categoryColors = [
+                '#3b82f6', // Blue
+                '#10b981', // Green
+                '#f59e0b', // Amber
+                '#8b5cf6', // Purple
+                '#ec4899', // Pink
+                '#06b6d4', // Cyan
+                '#84cc16', // Lime
+                '#f97316', // Orange
+                '#ef4444', // Red
+                '#6366f1', // Indigo
+                '#14b8a6', // Teal
+                '#a855f7'  // Violet
+            ];
+
+            // Assign color - use existing if present, otherwise assign new color
+            if (!window.categoryColorMap[categoryName]) {
+                if (categoryName === 'Trash') {
+                    window.categoryColorMap[categoryName] = '#dc3545'; // Red for Trash
+                } else {
+                    // Count existing non-Trash categories to determine color index
+                    const existingCategoryCount = Object.keys(window.categoryColorMap).filter(cat => cat !== 'Trash').length;
+                    window.categoryColorMap[categoryName] = categoryColors[existingCategoryCount % categoryColors.length];
+                }
+            }
+
+            const color = window.categoryColorMap[categoryName];
+
+            // Apply styling to the category stat item
+            if (statItem) {
+                statItem.style.borderLeftColor = color;
+                statItem.querySelector('.category-stat-name').style.color = color;
+                statItem.querySelector('.category-stat-count').style.backgroundColor = color;
+            }
+
+            // Apply styling to the main category container if it exists
+            const categoryContainer = document.querySelector(`.category-container[data-category="${categoryName}"]`);
+            if (categoryContainer) {
+                categoryContainer.style.borderTopColor = color;
+                const titleElement = categoryContainer.querySelector('.category-title');
+                const countElement = categoryContainer.querySelector('.category-count');
+                const headerElement = categoryContainer.querySelector('.category-header');
+                
+                if (titleElement) titleElement.style.color = color;
+                if (countElement) countElement.style.backgroundColor = color;
+                if (headerElement) headerElement.style.borderBottomColor = `${color}33`; // 20% opacity
+                
+                // Apply color to all image cards in this category
+                categoryContainer.querySelectorAll('.image-card').forEach(card => {
+                    card.style.borderTopColor = color;
+                });
+            }
+        }
+
+        // Global function to create a category container
+        function createCategoryContainer(categoryData) {
+            const container = document.createElement('div');
+            // Add special class for Trash container
+            container.className = categoryData.name === 'Trash' ? 
+                'category-container trash-category' : 'category-container';
+            container.dataset.category = categoryData.name;
+            container.dataset.totalImages = categoryData.count;
+            container.dataset.visibleImages = categoryData.count; // Show all images
+
+            const header = document.createElement('div');
+            header.className = 'category-header';
+
+            const title = document.createElement('h2');
+            title.className = 'category-title';
+
+            // Create title text span to allow for inline editing
+            const titleText = document.createElement('span');
+            titleText.className = 'category-title-text';
+            titleText.textContent = categoryData.name;
+
+            // Add elements to title
+            title.appendChild(titleText);
+            
+            // Add badge for Trash category
+            if (categoryData.name === 'Trash') {
+                // Add trash badge
+                const badge = document.createElement('span');
+                badge.className = 'category-title-trash-badge';
+                badge.textContent = 'trash';
+                title.appendChild(badge);
+                
+                // Change title text from "Trash" to "Deleted Items"
+                titleText.textContent = 'Deleted Items';
+            }
+
+            // Only add icons if NOT Trash category
+            if (categoryData.name !== 'Trash') {
+                // Create edit icon
+                const editIcon = document.createElement('button');
+                editIcon.className = 'edit-category-icon';
+                editIcon.innerHTML = '✏️';
+                editIcon.title = 'Edit category name';
+
+                // Add event listener for edit icon
+                editIcon.addEventListener('click', function() {
+                    startCategoryEdit(container, titleText);
+                });
+
+                // Create trash all icon
+                const trashAllIcon = document.createElement('button');
+                trashAllIcon.className = 'trash-all-category-icon';
+                trashAllIcon.innerHTML = '🗑️';
+                trashAllIcon.title = 'Move all images to Trash';
+
+                // Add event listener for trash all icon
+                trashAllIcon.addEventListener('click', function() {
+                    if (confirm(`Are you sure you want to move all images from "${categoryData.name}" to Trash?`)) {
+                        moveAllToTrash(categoryData.name);
+                    }
+                });
+
+                title.appendChild(editIcon);
+                title.appendChild(trashAllIcon);
+            }
+
+            const count = document.createElement('span');
+            count.className = 'category-count';
+            count.textContent = categoryData.count;
+
+            const imagesContainer = document.createElement('div');
+            imagesContainer.className = 'category-images';
+
+            header.appendChild(title);
+            header.appendChild(count);
+            container.appendChild(header);
+            container.appendChild(imagesContainer);
+
+            // Apply visual weight based on the count
+            if (categoryData.name !== 'Trash') {
+                updateCategoryVisualWeight(container, categoryData.count);
+            }
+
+            return container;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Initialize window.categoriesData if not defined
@@ -2242,92 +2559,6 @@
 
                 // Create category containers from data
                 categoriesContainer.innerHTML = '';
-
-                // Function to create a category container
-                function createCategoryContainer(categoryData) {
-                    const container = document.createElement('div');
-                    // Add special class for Trash container
-                    container.className = categoryData.name === 'Trash' ? 
-                        'category-container trash-category' : 'category-container';
-                    container.dataset.category = categoryData.name;
-                    container.dataset.totalImages = categoryData.count;
-                    container.dataset.visibleImages = categoryData.count; // Show all images
-
-                    const header = document.createElement('div');
-                    header.className = 'category-header';
-
-                    const title = document.createElement('h2');
-                    title.className = 'category-title';
-
-                    // Create title text span to allow for inline editing
-                    const titleText = document.createElement('span');
-                    titleText.className = 'category-title-text';
-                    titleText.textContent = categoryData.name;
-
-                    // Add elements to title
-                    title.appendChild(titleText);
-                    
-                    // Add badge for Trash category
-                    if (categoryData.name === 'Trash') {
-                        // Add trash badge
-                        const badge = document.createElement('span');
-                        badge.className = 'category-title-trash-badge';
-                        badge.textContent = 'trash';
-                        title.appendChild(badge);
-                        
-                        // Change title text from "Trash" to "Deleted Items"
-                        titleText.textContent = 'Deleted Items';
-                    }
-
-                    // Only add icons if NOT Trash category
-                    if (categoryData.name !== 'Trash') {
-                        // Create edit icon
-                        const editIcon = document.createElement('button');
-                        editIcon.className = 'edit-category-icon';
-                        editIcon.innerHTML = '✏️';
-                        editIcon.title = 'Edit category name';
-
-                        // Add event listener for edit icon
-                        editIcon.addEventListener('click', function() {
-                            startCategoryEdit(container, titleText);
-                        });
-
-                        // Create trash all icon
-                        const trashAllIcon = document.createElement('button');
-                        trashAllIcon.className = 'trash-all-category-icon';
-                        trashAllIcon.innerHTML = '🗑️';
-                        trashAllIcon.title = 'Move all images to Trash';
-
-                        // Add event listener for trash all icon
-                        trashAllIcon.addEventListener('click', function() {
-                            if (confirm(`Are you sure you want to move all images from "${categoryData.name}" to Trash?`)) {
-                                moveAllToTrash(categoryData.name);
-                            }
-                        });
-
-                        title.appendChild(editIcon);
-                        title.appendChild(trashAllIcon);
-                    }
-
-                    const count = document.createElement('span');
-                    count.className = 'category-count';
-                    count.textContent = categoryData.count;
-
-                    const imagesContainer = document.createElement('div');
-                    imagesContainer.className = 'category-images';
-
-                    header.appendChild(title);
-                    header.appendChild(count);
-                    container.appendChild(header);
-                    container.appendChild(imagesContainer);
-
-                    // Apply visual weight based on the count
-                    if (categoryData.name !== 'Trash') {
-                        updateCategoryVisualWeight(container, categoryData.count);
-                    }
-
-                    return container;
-                }
 
                 // Make sure window.categoriesData is defined
                 window.categoriesData = window.categoriesData || [];
@@ -3166,55 +3397,8 @@
             // Add the new category container
             categoriesContainer.appendChild(createCategoryContainer(newCategoryName));
 
-            // Update the category stats in the summary - insert in alphabetical order
-            const categorySummary = document.querySelector('.category-stats');
-            if (categorySummary) {
-                // Get all existing category names to determine insertion position
-                const existingCategoryNames = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
-                    .map(elem => elem.textContent);
-                existingCategoryNames.push(newCategoryName);
-                // Sort all names alphabetically
-                existingCategoryNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-                // Find the index of our new category
-                const newCategoryIndex = existingCategoryNames.indexOf(newCategoryName);
-                const newStatItem = document.createElement('div');
-                newStatItem.className = 'category-stat-item';
-
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'category-stat-name';
-                nameSpan.textContent = newCategoryName;
-
-                const countSpan = document.createElement('span');
-                countSpan.className = 'category-stat-count';
-                countSpan.textContent = '0';
-
-                newStatItem.appendChild(nameSpan);
-                newStatItem.appendChild(countSpan);
-
-                // Insert in the correct alphabetical position
-                if (newCategoryIndex === existingCategoryNames.length - 1) {
-                    // Last element, just append
-                    categorySummary.appendChild(newStatItem);
-                } else if (newCategoryIndex === 0) {
-                    // First element, insert at beginning
-                    categorySummary.insertBefore(newStatItem, categorySummary.firstChild);
-                } else {
-                    // Middle element, find the element after which we should insert
-                    const prevCategoryName = existingCategoryNames[newCategoryIndex - 1];
-                    const prevCategoryElement = Array.from(categorySummary.querySelectorAll('.category-stat-name'))
-                        .find(elem => elem.textContent === prevCategoryName);
-                    if (prevCategoryElement) {
-                        const prevStatItem = prevCategoryElement.closest('.category-stat-item');
-                        if (prevStatItem && prevStatItem.nextSibling) {
-                            categorySummary.insertBefore(newStatItem, prevStatItem.nextSibling);
-                        } else {
-                            categorySummary.appendChild(newStatItem);
-                        }
-                    } else {
-                        categorySummary.appendChild(newStatItem);
-                    }
-                }
-            }
+            // Update the summary section with new category using reusable function
+            updateCategorySummary(newCategoryName);
 
             // Close the modal
             document.getElementById('category-modal').style.display = 'none';
