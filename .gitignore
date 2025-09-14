@@ -43,8 +43,10 @@ activate/
 .LSOverride
 ._*
 
-# OpenAI API key
-.env.old
+# Environment files
+.env
+.env.*
+!.env.example
 
 # Testing/debugging
 test_images/
