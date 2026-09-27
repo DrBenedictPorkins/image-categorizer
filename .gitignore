@@ -58,3 +58,4 @@ debug/
 !template.html
 
 ignore_tests/
+!sundry/template_legacy.html

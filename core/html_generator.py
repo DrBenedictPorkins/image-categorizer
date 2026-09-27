@@ -19,6 +19,7 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.image_data import CategorizationResult, ImageData
+from core.categories import categories_file_path
 
 
 class HTMLGenerator:
@@ -63,14 +64,25 @@ class HTMLGenerator:
         
         # Prepare data for the template
         card_data = self._prepare_card_data(directory, result.images)
-        categories_data = self._prepare_categories_data(result.category_groups)
+        categories_data = self._prepare_categories_data(
+            result.category_groups, result.category_definitions)
         summary_html = self._generate_summary_html(directory, result, now)
         
+        report_meta = {
+            "directory": os.path.abspath(directory),
+            "provider": result.processing_stats.get('provider', 'Unknown'),
+            "model": result.processing_stats.get('model', 'Unknown'),
+            "generated": datetime.now().isoformat(timespec='seconds'),
+            "total_images": len(result.images),
+            "categories_file": str(categories_file_path(os.getenv('CATEGORIES_FILE'))),
+        }
+
         # Replace template placeholders
         html_content = template_content.replace("{{timestamp}}", now)
         html_content = html_content.replace("{{summary}}", summary_html)
-        html_content = html_content.replace("{{card_data}}", json.dumps(card_data))
-        html_content = html_content.replace("{{categories_data}}", json.dumps(categories_data))
+        html_content = html_content.replace("{{card_data}}", self._json_for_script(card_data))
+        html_content = html_content.replace("{{categories_data}}", self._json_for_script(categories_data))
+        html_content = html_content.replace("{{report_meta}}", self._json_for_script(report_meta))
         
         # Write the HTML file
         output_path = os.path.join(directory, output_filename)
@@ -79,6 +91,11 @@ class HTMLGenerator:
         
         return output_path
     
+    @staticmethod
+    def _json_for_script(value: Any) -> str:
+        """Serialize to JSON that cannot close the surrounding <script> element."""
+        return json.dumps(value).replace("</", "<\\/")
+
     def _prepare_card_data(self, directory: str, images: List[ImageData]) -> List[Dict[str, Any]]:
         """Prepare image card data for JavaScript."""
         card_data = []
@@ -112,14 +129,33 @@ class HTMLGenerator:
         
         return card_data
     
-    def _prepare_categories_data(self, category_groups: Dict[str, List[str]]) -> List[Dict[str, Any]]:
-        """Prepare category data for the template."""
+    def _prepare_categories_data(
+        self,
+        category_groups: Dict[str, List[str]],
+        definitions: List[Dict[str, str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Prepare category data for the template.
+
+        Saved categories with no photos in this result are included, so saving the
+        category list from the report does not drop them.
+        """
         categories_data = []
-        
+        by_name = {d['name']: d for d in (definitions or [])}
+
         for category, files in category_groups.items():
+            definition = by_name.pop(category, {})
             categories_data.append({
                 "name": category,
-                "count": len(files)
+                "count": len(files),
+                "rule": definition.get("rule", ""),
+                "status": definition.get("status", "")
+            })
+        for definition in by_name.values():
+            categories_data.append({
+                "name": definition["name"],
+                "count": 0,
+                "rule": definition.get("rule", ""),
+                "status": definition.get("status", "")
             })
         
         # Ensure Trash category exists (for drag-and-drop functionality)
