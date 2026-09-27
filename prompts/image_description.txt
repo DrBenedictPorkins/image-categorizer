@@ -1,0 +1,76 @@
+Analyze this image thoroughly and provide a detailed factual description for categorization purposes.
+
+PREFERRED CATEGORIES:
+Choose the BEST category from this list based on the image content:
+
+- Software Development: Code editors, development tools, programming environments, IDEs
+- Web Development: Websites, web applications, browser interfaces
+- User Interface: App interfaces, UI designs, mockups, wireframes
+- Project Management: Task boards, project timelines, planning tools
+- Business Documents: Reports, presentations, spreadsheets, official documents
+- Financial Records: Banking, invoices, financial statements, receipts
+- Digital Communication: Email, messaging apps, chat interfaces
+- Social Media: Social platforms, posts, profiles, social content
+- Gaming: Video games, game interfaces, gaming content, character sheets
+- Electronics & Technology: Hardware, devices, technical equipment
+- Shopping & Commerce: Online stores, shopping carts, product listings
+- Education & Learning: Educational content, courses, tutorials, academic materials
+- Entertainment & Media: Movies, TV, celebrities, entertainment events, media content
+- Personal Photos: Personal photographs, family pictures, selfies, candid photos, headshots
+- Network & Systems: Network diagrams, system architecture, server interfaces
+- File Management: File explorers, directory structures, file operations
+- Documentation: Manuals, guides, help documentation, technical writing
+- Security & Access: Login screens, security settings, access controls
+- Error Messages: Error dialogs, warning messages, system alerts
+- Dashboards & Analytics: Data visualizations, metrics, monitoring interfaces
+- Code & Programming: Source code, programming tutorials, coding examples
+- Tutorial & Guides: How-to content, instructional materials, step-by-step guides
+- Design & Graphics: Visual designs, artwork, graphics, creative content
+- System Status & Monitoring: Status pages, system alerts, service notifications, uptime reports
+
+INSTRUCTIONS:
+1. CREATE FOCUSED DESCRIPTION: Provide a concise, factual description (2-4 sentences max) including:
+   - Main subject/content and purpose of the image
+   - Image type (screenshot, photo, document, interface, etc.)
+   - Key visual elements that help with categorization
+   - Essential context only (avoid listing all visible text or UI elements)
+   - Focus on what's most important for categorization
+
+2. SELECT PRIMARY CATEGORY: Choose the single BEST category from the provided list that matches the image content
+
+3. ADD DESCRIPTIVE TAGS: Provide 2-10 descriptive tags for granular classification (lowercase, use dashes for multi-word tags)
+
+GUIDELINES:
+- Keep descriptions concise and focused on categorization needs
+- Don't transcribe or list all visible text elements
+- Summarize complex interfaces rather than detailing every component
+- Focus on the primary purpose/function of what's shown
+- IMPORTANT: Base categorization ONLY on what's actually visible, not assumptions about people or context
+- Photos of people should be categorized by the type of photo, not the assumed profession of the person
+
+RESPONSE FORMAT:
+The expected response format is shown between the XML tags below. Your response should contain ONLY the YAML content inside the tags, WITHOUT the XML tags themselves:
+
+<expected_response>
+description: |
+  A concise factual description of the image content and purpose.
+  Keep it brief but informative for categorization purposes.
+primary_category: Selected Category Name
+suggested_tags:
+  - descriptive
+  - multi-word
+  - dash-separated
+  - relevant-tags
+  - max-ten
+  - person
+  - landscape
+  - birthday
+  - bicycle
+  - selfie
+</expected_response>
+
+CRITICAL: 
+- Base analysis only on what's visible in the image
+- Keep descriptions brief and focused (2-4 sentences maximum)
+- Use the literal block (|) for description to avoid quote issues
+- Return ONLY the raw YAML content shown above, NO XML tags, NO markdown blocks, NO explanations

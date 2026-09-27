@@ -5,11 +5,14 @@ This module defines the abstract base class that all LLM providers must implemen
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Callable, Optional
+from typing import List, Dict, Any, Callable, Optional, TYPE_CHECKING
 from pathlib import Path
 import time
 
 from models.image_data import CategorizationResult, ProviderConfig
+
+if TYPE_CHECKING:
+    from models.image_data import ImageData
 
 
 class BaseLLMProvider(ABC):
@@ -42,6 +45,16 @@ class BaseLLMProvider(ABC):
     def supports_vision(self) -> bool:
         """Whether this provider supports vision/image input."""
         pass
+
+    @property
+    def supports_description(self) -> bool:
+        """Whether this provider supports the description phase (Phase 1)."""
+        return self.supports_vision
+
+    @property
+    def supports_categorization(self) -> bool:
+        """Whether this provider supports the categorization phase (Phase 2)."""
+        return True  # Most providers support text-based categorization
     
     @property
     def is_initialized(self) -> bool:
@@ -69,29 +82,88 @@ class BaseLLMProvider(ABC):
     
     @abstractmethod
     def process_images(
-        self, 
-        image_paths: List[str], 
+        self,
+        image_paths: List[str],
         progress_callback: Optional[Callable[[str, float], None]] = None,
         initial_categories: Optional[List[str]] = None
     ) -> CategorizationResult:
         """
-        Process a list of images: describe AND categorize them.
-        
+        Process a list of images: describe AND categorize them (full pipeline).
+
         This is the main method that providers must implement. It should:
         1. Generate descriptions for each image
         2. Analyze all images collectively to create meaningful categories
         3. Assign each image to appropriate categories
         4. Return a complete CategorizationResult
-        
+
+        Note: This method can be implemented by calling describe_images() followed by
+        categorize_described_images() for providers that support phase separation.
+
         Args:
             image_paths: List of absolute paths to image files
             progress_callback: Optional callback for progress updates (message, progress_0_to_1)
             initial_categories: Optional list of initial category suggestions for the LLM
-        
+
         Returns:
             CategorizationResult containing all processed images and categorization
         """
         pass
+
+    def describe_images(
+        self,
+        image_paths: List[str],
+        progress_callback: Optional[Callable[[str, float], None]] = None,
+        initial_categories: Optional[List[str]] = None
+    ) -> List['ImageData']:
+        """
+        Phase 1: Generate descriptions for images only.
+
+        This method allows separation of the description phase from categorization,
+        enabling hybrid workflows (e.g., local description + remote categorization).
+
+        Args:
+            image_paths: List of absolute paths to image files
+            progress_callback: Optional callback for progress updates (message, progress_0_to_1)
+            initial_categories: Optional list of initial category suggestions for the LLM
+
+        Returns:
+            List of ImageData with descriptions and suggested_categories populated
+
+        Raises:
+            NotImplementedError: If provider does not support separate description phase
+        """
+        raise NotImplementedError(
+            f"{self.provider_name} provider does not support separate description phase. "
+            "Use process_images() for full pipeline."
+        )
+
+    def categorize_described_images(
+        self,
+        images: List['ImageData'],
+        progress_callback: Optional[Callable[[str, float], None]] = None
+    ) -> CategorizationResult:
+        """
+        Phase 2: Categorize images that already have descriptions.
+
+        This method allows categorization of pre-described images, enabling:
+        - Using different providers for description and categorization
+        - Re-categorizing images with different models/parameters
+        - Privacy-conscious workflows (local description + cloud categorization)
+
+        Args:
+            images: List of ImageData with descriptions already populated
+            progress_callback: Optional callback for progress updates (message, progress_0_to_1)
+
+        Returns:
+            Complete CategorizationResult with final categories assigned
+
+        Raises:
+            NotImplementedError: If provider does not support separate categorization phase
+        """
+        raise NotImplementedError(
+            f"{self.provider_name} provider does not support separate categorization phase. "
+            "Use process_images() for full pipeline."
+        )
     
     @abstractmethod
     def test_connection(self) -> bool:
@@ -181,15 +253,19 @@ class BaseLLMProvider(ABC):
         return valid_paths
     
     def _retry_with_exponential_backoff(
-        self, 
-        func: Callable, 
-        max_retries: int = 3, 
-        retry_delay: float = 1.0, 
+        self,
+        func: Callable,
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
         retry_exceptions: tuple = (Exception,),
         operation_name: str = "operation"
     ):
         """
         Retry a function with exponential backoff.
+
+        NOTE: This method is ready for use by future providers.
+        Currently, OllamaProvider implements its own retry logic inline,
+        but new providers should use this method for consistency.
         
         Args:
             func: Function to retry

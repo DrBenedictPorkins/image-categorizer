@@ -7,5 +7,7 @@ for image description and categorization.
 
 from .base import BaseLLMProvider
 from .ollama_provider import OllamaProvider
+from .keyword_provider import KeywordCategorizationProvider
+from .huggingface_provider import HuggingFaceProvider
 
-__all__ = ['BaseLLMProvider', 'OllamaProvider']
+__all__ = ['BaseLLMProvider', 'OllamaProvider', 'KeywordCategorizationProvider', 'HuggingFaceProvider']
