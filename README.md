@@ -1,319 +1,268 @@
 # AI Image Categorizer
 
-An intelligent image categorization tool using AI for automatic image organization.
+Describes a folder of images with a vision model, groups them into categories,
+and produces an interactive HTML report for reorganizing them.
 
 <div align="center">
   <a href="https://www.youtube.com/watch?v=8wniawe13Xc">
     <img src="https://img.youtube.com/vi/8wniawe13Xc/0.jpg" alt="Introduction Video" width="400">
   </a>
-  <p>👆 Click to watch introduction video</p>
+  <p>Introduction video</p>
 </div>
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
-[![Claude 3.7](https://img.shields.io/badge/Claude-3.7%20Sonnet-green)](https://www.anthropic.com/)
-[![GPT-4o mini](https://img.shields.io/badge/GPT--4o-mini-orange)](https://openai.com/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
+[![Ollama](https://img.shields.io/badge/Ollama-Vision%20Models-purple)](https://ollama.ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## TL;DR - Quick Start
-
-This tool uses:
-- Local Salesforce BLIP model (downloaded automatically) to analyze and describe images
-- Remote LLM (ANTHROPIC or OPENAI) for categorization - you must provide one API key
-
-First, install uv package manager:
-* Get uv from https://github.com/astral-sh/uv/releases or via pip: `pip install uv`
-
-```bash
-# Clone repo
-git clone https://github.com/DrBenedictPorkins/image-categorizer.git
-```
-
-```bash
-# Navigate to directory
-cd image-categorizer
-```
-
-```bash
-# Create virtual environment
-uv venv
-```
-
-For macOS/Linux:
-```bash
-# Activate virtual environment (macOS/Linux)
-source .venv/bin/activate
-```
-
-For Windows:
-```bash
-# Activate virtual environment (Windows)
-.venv\Scripts\activate
-```
-
-```bash
-# Install dependencies
-uv pip install -e .
-```
-
-**Option 1: Using a .env file (recommended)**
-
-Create a `.env` file in the project root with your API key:
-```
-# For Anthropic API (recommended)
-ANTHROPIC_API_KEY=your_key_here
-
-# OR for OpenAI API
-OPENAI_API_KEY=your_key_here
-```
-
-You can use the provided `.env.example` file as a template:
-```bash
-cp .env.example .env
-# Then edit .env to add your API key
-```
-
-Then run:
-```bash
-python main.py /path/to/your/images
-```
-
-**Option 2: Using environment variables**
-
-To run with Anthropic API (recommended):
-```bash
-# Set API key and run
-export ANTHROPIC_API_KEY=your_key_here  # Linux/macOS
-python main.py /path/to/your/images
-```
-
-OR one-line version:
-```bash
-ANTHROPIC_API_KEY=your_key_here python main.py /path/to/your/images
-```
-
-Alternatively, to run with OpenAI API:
-```bash
-# Set API key and run
-export OPENAI_API_KEY=your_key_here  # Linux/macOS
-python main.py /path/to/your/images
-```
-
-OR one-line version:
-```bash
-OPENAI_API_KEY=your_key_here python main.py /path/to/your/images
-```
-
-That's it! An HTML report (`image_categories.html`) will be generated in your image directory.
-
-## Overview
-
-This tool automatically analyzes and organizes image collections by:
-1. Creating detailed descriptions with Salesforce BLIP (Local LLM)
-2. Assigning category labels using AI (Claude 3.7 Sonnet or GPT-4o mini)
-3. Grouping images into logical categories
-4. Generating an interactive HTML report with drag-and-drop organization
-5. Creating bash scripts for physically moving files into categorized directories
-
-## System Requirements
-
-- **Python**: 3.9.19+
-- **Hardware**: One of the following:
-  - Apple Silicon Mac (M1/M2/M3) - optimal performance
-  - NVIDIA GPU with CUDA support
-  - Any modern CPU (will be slower)
-- **LLM Requirements**:
-  - Local: Salesforce BLIP for image descriptions (included in package)
-  - Remote: **REQUIRED** - You must choose one of:
-    - ANTHROPIC API key (recommended for Claude 3.7 Sonnet - preferred option)
-    - OPENAI API key (alternative option for GPT-4o mini)
-- **Internet connection** for API access
+> **Maintenance status:** dependencies were upgraded on 2026-09-26 (Python 3.12,
+> torch 2.14, transformers 5.17). See [docs/DEPENDENCY_AUDIT.md](docs/DEPENDENCY_AUDIT.md).
 
 ## Quick Start
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/DrBenedictPorkins/image-categorizer.git
-   cd image-categorizer
-   ```
-
-2. **Verify Python requirements**:
-   ```bash
-   # Ensure you have Python 3.9.19+
-   python --version
-   ```
-
-3. **Set up with uv**:
-   ```bash
-   # Get uv from https://github.com/astral-sh/uv/releases
-   # Or install via pip
-   pip install uv
-
-   # Create and activate virtual environment
-   uv venv
-   source .venv/bin/activate  # On Linux/macOS
-   # OR
-   .venv\Scripts\activate     # On Windows
-
-   # Install dependencies
-   uv pip install -e .
-   ```
-
-4. **Set up API key** (required for categorization):
-
-   **Option 1: Using a .env file (recommended)**
-
-   Create a `.env` file in the project root directory with your API key:
-   ```
-   # Option A: Anthropic API (recommended for best results)
-   ANTHROPIC_API_KEY=your_api_key_here
-
-   # Option B: OpenAI API (alternative)
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
-   You can use the provided `.env.example` file as a template - just copy it to `.env` and add your API key.
-
-   **Option 2: Using environment variables**
-   ```bash
-   # Option A: Anthropic API (recommended for best results)
-   export ANTHROPIC_API_KEY=your_api_key_here  # Linux/macOS
-   # OR
-   set ANTHROPIC_API_KEY=your_api_key_here     # Windows
-
-   # Option B: OpenAI API (alternative)
-   export OPENAI_API_KEY=your_api_key_here     # Linux/macOS
-   # OR
-   set OPENAI_API_KEY=your_api_key_here        # Windows
-   ```
-
-   > **Note**: At least one of these API keys must be provided for image categorization to work.
-
-5. **Run the program**:
-   ```bash
-   # Process images in your Photos folder
-   python main.py ~/Pictures/MyPhotos
-
-   # Or a specific folder of images you want to categorize
-   python main.py /path/to/your/images
-   ```
-
-   After processing completes, an interactive HTML report (`image_categories.html`) will be generated in your image directory and automatically opened in your default web browser.
-
-## Usage Options
-
-### Basic Usage
-
-Run the script with a directory containing images:
+Requires [uv](https://github.com/astral-sh/uv).
 
 ```bash
-python main.py /path/to/your/images
+git clone https://github.com/DrBenedictPorkins/image-categorizer.git
+cd image-categorizer
+uv sync
 ```
 
-The program will:
-1. Process each image using BLIP (Local LLM from Salesforce) to generate detailed descriptions
-2. Create concise category labels using your chosen remote LLM:
-   - ANTHROPIC Claude 3.7 Sonnet (if ANTHROPIC_API_KEY is set - preferred)
-   - OPENAI GPT-4o mini (if OPENAI_API_KEY is set - alternative option)
-3. Group images into logical categories
-4. Generate an interactive HTML report that opens automatically
-5. Show a summary of results with performance metrics
-
-### Additional Options
+Run fully locally with Ollama. Pull a vision model for descriptions and a text
+model for categorization, then point the tool at them in `.env` (values in `.env`
+take precedence over exported variables):
 
 ```bash
-# Process a specific directory of images
-python main.py ~/Pictures/Vacation2023
-
-# Reuse existing JSON data to regenerate HTML report (much faster)
-python main.py ~/Pictures/Vacation2023 --json ~/Pictures/Vacation2023/image_categories.json
-
-# Use a specific existing group categorization
-python main.py ~/Pictures/Vacation2023 -j ~/Pictures/Vacation2023/group_categories.json
-
-# Automatically use group_categories.json from the image directory
-python main.py ~/Pictures/Vacation2023 --json
-
-# Just create a symlink to view results elsewhere if needed
-ln -s ~/Pictures/Vacation2023/image_categories.html ~/Documents/vacation_report.html
-
-# Help and options
-python main.py --help
+ollama pull qwen3.6:35b            # vision model, Phase 1
+ollama pull mistral-small3.2:24b   # text model, Phase 2
+cp .env.example .env               # then set OLLAMA_MODEL and OLLAMA_TEXT_MODEL
+uv run python main.py /path/to/images --provider ollama
 ```
 
-### Output Files
+Or fully locally with HuggingFace models (downloaded on first run):
 
-After running, the program creates these files in your images directory (or specified output directory):
-1. `image_categories.json`: Contains descriptions and categories for each image
-2. `group_categories.json`: Contains the organized category structure
-3. `image_categories.html`: The interactive web interface for organizing images
+```bash
+uv run python main.py /path/to/images --provider huggingface
+```
 
-## Features
+No API key is required. The report `image_categories.html` is written into the
+image directory and opened in the default browser.
 
-### Interactive HTML Report
+### Recommended workflow for large libraries
 
-An HTML report is automatically generated with:
-- Fully interactive interface for viewing and organizing images
-- Intuitive drag-and-drop functionality for moving images between categories
-- Color-coded categories with consistent visual styling
-- Images grouped by their assigned categories
-- Dropdown selectors to quickly change image categories
-- Enhanced fullscreen image previews with navigation and trash/restore controls
-- Special "Deleted Items" category with restore functionality
-- Complete descriptions and metadata for each image
-- Summary statistics with visual category counts
-- Option to generate a bash script for physically moving files into category directories
-- Responsive design that works on various screen sizes
+Describe once, then categorize as often as you like:
 
-### Group Categories
+```bash
+# Phase 1: describe every photo (saves progress; rerun to resume after a crash)
+uv run python main.py "/path/to/images" --description-provider ollama --describe-only \
+    --init-categories "Portraits,Family Photos,Accidental Shots"
 
-Images are automatically analyzed as a collection to create logical directory categories:
-- Uses remote LLM (ANTHROPIC Claude 3.7 Sonnet preferred) to analyze all image descriptions holistically
-- Creates logical, semantically meaningful categories suitable for directory organization (5-10 categories)
-- Assigns each image to the most appropriate category
-- Handles edge cases gracefully with special categorization rules
-- Outputs a suggested directory structure
-- Maintains category consistency across similar images
-- Stores original category information to enable restore operations from "Deleted Items"
+# Phase 2: categorize from the saved descriptions (minutes, no image processing)
+uv run python main.py "/path/to/images" --categorization-provider ollama \
+    --categorize-from "/path/to/images/descriptions_only.json"
+```
 
-### Supported Image Formats
+Then open the report, move or trash photos, click **Save categories** to keep
+your category list for next time, and **Export move script** to sort the files
+into folders.
 
-- JPEG (.jpg, .jpeg)
-- PNG (.png)
-- GIF (.gif)
-- BMP (.bmp)
-- WebP (.webp)
+For reference: 1,195 iPad photos took about 80 minutes for Phase 1 and 8 minutes
+for Phase 2 with `qwen3.6:35b` and `mistral-small3.2:24b` on an RTX 4090.
 
-## Model Configuration
+## How It Works
 
-The tool uses two types of AI models to process and categorize your images:
+Processing is split into two phases that can use different providers.
 
-1. **Local LLM: BLIP (image-to-text)**: 
-   - Runs locally on your machine (no API key required)
-   - Generates detailed descriptions of image content
-   - Defaults to 'Salesforce/blip2-flan-t5-xl-coco' model
-   - Requires a BLIP-compatible LLM for image-to-text conversion
-   - Uses Metal Performance Shaders (MPS) acceleration on Apple Silicon
-   - Uses CUDA on NVIDIA GPUs if available
-   - Falls back to CPU if needed
+**Phase 1 - Description.** A vision model describes each image, judges whether
+it is an accidental or failed shot, and suggests 2-5 categories for it. Progress
+is saved to `descriptions_only.json` every 10 images; rerunning the same command
+resumes and retries failed images.
 
-2. **Remote LLM (REQUIRED for categorization)**: 
+**Phase 2 - Categorization (Ollama).** A text model assigns each image to your
+saved category list, in batches of 40. Each category has a rule describing what
+belongs in it. On the first run, with no saved list, the list is built from the
+images' suggestions. On later runs, images that fit no saved rule are grouped
+into new categories, which are kept only if enough images land in them, marked
+new, and saved for you to review. Images that still fit nothing go to Unsorted.
 
-   **Option 1 (Preferred): ANTHROPIC Claude 3.7 Sonnet**
-   - State-of-the-art multimodal AI model
-   - Performs exceptional image categorization
-   - Creates intuitive, semantically meaningful categories
-   - Handles diverse image collections with deep understanding
-   - Understands nuanced image contexts and relationships
-   - Requires Anthropic API key
+### Saved categories
 
-   **Option 2: OPENAI GPT-4o mini**
-   - Alternative choice for image categorization
-   - Provides good quality categorization capabilities
-   - Requires OpenAI API key
+The category list lives in `~/.config/image-categorizer/categories.yaml`
+(override with `CATEGORIES_FILE`) and is reused for every photo library:
 
-   > **Note:** You MUST configure ONE of these remote LLMs via API key for the categorization functionality to work properly.
+```yaml
+categories:
+  - name: Portraits
+    rule: Photos of people looking at the camera, including selfies.
+    status: kept
+```
 
+`status: new` marks categories the model added and you have not reviewed. Edit
+the file by hand, or use **Save categories** in the report: it downloads the list
+with your renames, merges, rule edits and new categories, all marked kept.
 
-## Customization
+Splitting the phases allows:
+- Re-running categorization without re-describing images.
+- Describing locally and categorizing with a different provider.
+- Using a cheap keyword-based Phase 2 for quick iteration.
 
-The HTML template (`template.html`) can be customized to change the appearance and functionality of the report.
+## Providers
+
+| Provider | Phase 1 | Phase 2 | Runs where | Status |
+|---|---|---|---|---|
+| `ollama` | Yes | Yes | Ollama server (local or remote) | Implemented |
+| `huggingface` | Yes | Yes | In-process, local models | Implemented |
+| `keyword` | No | Yes | In-process, keyword matching | Implemented |
+| `anthropic`, `openai`, `bedrock` | - | - | - | Config stubs only, not implemented |
+
+## Usage
+
+### Workflow modes
+
+```bash
+# 1. Full pipeline, one provider for both phases
+uv run python main.py /path/to/images --provider ollama
+
+# 2. Phase 1 only - writes descriptions_only.json
+uv run python main.py /path/to/images --description-provider huggingface --describe-only
+
+# 3. Phase 2 only - from a saved descriptions file
+uv run python main.py /path/to/images --categorization-provider keyword \
+    --categorize-from /path/to/images/descriptions_only.json
+
+# 4. Two phases, different providers
+uv run python main.py /path/to/images \
+    --description-provider huggingface --categorization-provider ollama
+```
+
+### Options
+
+| Option | Meaning |
+|---|---|
+| `--init-categories "A,B,C"` or `--init-categories file.txt` | Category hints for Phase 1 (file: one per line) |
+| `--model <name>` | Overrides `OLLAMA_MODEL` |
+| `--no-html` | Do not open the report in a browser |
+
+### Rebuild the HTML report from existing results
+
+```bash
+uv run python core/html_generator.py /path/to/images/categorization_results.json
+```
+
+### Output files
+
+Written into the image directory:
+
+| File | Produced by |
+|---|---|
+| `descriptions_only.json` | Modes 2 and 4 |
+| `categorization_results.json` | Modes 1, 3 and 4 |
+| `image_categories.html` | Modes 1, 3 and 4 |
+
+## Configuration
+
+Settings are read from environment variables. A `.env` file in the repository
+root is loaded automatically; `.env.example` lists the variables.
+
+### Ollama
+
+| Variable | Default |
+|---|---|
+| `OLLAMA_HOST` | `http://localhost:11434` |
+| `OLLAMA_MODEL` | `llama3.2-vision:latest` |
+| `OLLAMA_TEXT_MODEL` | `llama3.2:latest` |
+| `OLLAMA_TIMEOUT` | `300` seconds |
+| `OLLAMA_MAX_RETRIES` | `2` |
+| `OLLAMA_RETRY_DELAY` | `1.0` seconds, doubled on each retry |
+
+### HuggingFace
+
+| Variable | Default |
+|---|---|
+| `HF_VISION_MODEL` | `Salesforce/blip2-flan-t5-xl-coco` |
+| `HF_TEXT_MODEL` | `google/flan-t5-xl` |
+| `HF_DEVICE` | `auto` (MPS, then CUDA, then CPU) |
+| `HF_CACHE_DIR` | HuggingFace default cache |
+| `HUGGINGFACE_TOKEN` | unset; needed only for gated models |
+
+Predefined models:
+
+- Vision: `Salesforce/blip2-flan-t5-xl-coco` (~15GB),
+  `llava-hf/llava-1.5-7b-hf` (~13GB),
+  `Salesforce/blip-image-captioning-base` (~2GB),
+  `openbmb/MiniCPM-V-2` (~8GB; does not currently load, see audit)
+- Text: `google/flan-t5-xl` (~3GB), `microsoft/phi-2` (~5GB)
+
+Other model IDs are attempted through the transformers Auto classes.
+
+Example, smaller and faster:
+
+```bash
+export HF_VISION_MODEL="Salesforce/blip-image-captioning-base"
+export HF_TEXT_MODEL="google/flan-t5-xl"
+uv run python main.py /path/to/images --provider huggingface
+```
+
+See [docs/HUGGINGFACE_PROVIDER.md](docs/HUGGINGFACE_PROVIDER.md) and
+[docs/QUICK_START_HUGGINGFACE.md](docs/QUICK_START_HUGGINGFACE.md).
+
+## HTML Report
+
+- Photos grouped by category, each category with its rule (click to edit) and a
+  New badge for categories added on this run
+- Category rail with counts; drag photos onto a category there or in the grid
+- Per-photo category menu, including suggested categories as new categories
+- Rename a category (renaming to an existing name merges them), create, remove
+  empty categories, move a whole category to Trash
+- Trash with restore to the original category
+- Full-size preview with arrow-key browsing, trash and restore
+- **Save categories**: downloads your category list for future runs
+- **Export move script**: a bash script that moves each photo into a folder
+  named after its category (trashed photos go to a Trash folder)
+
+The template is `template.html` and is loaded by relative path, so run commands
+from the repository root.
+
+### Supported image formats
+
+`.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`
+
+## Troubleshooting
+
+**Ollama: connection refused** - start `ollama serve`, or set `OLLAMA_HOST` to
+the remote server.
+
+**Ollama: model not found** - `ollama pull <model>` for both `OLLAMA_MODEL` and
+`OLLAMA_TEXT_MODEL`.
+
+**HuggingFace: out of memory** - use `Salesforce/blip-image-captioning-base`,
+or set `HF_DEVICE=cpu`.
+
+**HuggingFace: slow** - check the startup line `Using device: ...` reports `mps`
+or `cuda`.
+
+## Requirements
+
+- Python 3.12+ (see `.python-version`)
+- For `ollama`: a running Ollama server with a vision model and a text model
+- For `huggingface`: disk and RAM for the chosen models; Apple Silicon (MPS) or
+  NVIDIA (CUDA) recommended
+
+## Project Layout
+
+| Path | Contents |
+|---|---|
+| `main.py` | Command line, workflow modes, Phase 1 progress saving |
+| `core/config.py` | Provider settings from environment variables |
+| `core/categories.py` | Saved category list (load, save) |
+| `core/image_processor.py` | Image discovery and validation |
+| `core/html_generator.py` | Builds the HTML report from results |
+| `template.html` | Report template (layout, drag and drop, move script) |
+| `models/image_data.py` | `ImageData`, `CategorizationResult` |
+| `providers/` | Ollama, HuggingFace and keyword providers |
+| `prompts/` | Prompt text files |
+| `docs/` | Provider guides and the dependency audit |
+| `sundry/` | Pre-refactor code and experiment scripts, not used by the app |
+
+## License
+
+MIT. See [LICENSE](LICENSE).
