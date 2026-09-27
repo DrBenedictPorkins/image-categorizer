@@ -11,6 +11,47 @@ from typing import Optional, List, Dict, Any
 from models.image_data import ProviderConfig
 
 
+def get_description_provider_config(provider_name: str) -> Optional[ProviderConfig]:
+    """
+    Get configuration for description phase provider from environment variables.
+
+    Args:
+        provider_name: Name of the provider ('ollama', 'huggingface', etc.)
+
+    Returns:
+        ProviderConfig if provider is configured, None otherwise
+    """
+    if provider_name == 'huggingface':
+        settings = {
+            'vision_model': os.getenv('HF_VISION_MODEL', 'Salesforce/blip2-flan-t5-xl-coco'),
+            'text_model': os.getenv('HF_TEXT_MODEL', 'google/flan-t5-xl'),
+            'device': os.getenv('HF_DEVICE', 'auto'),
+            'cache_dir': os.getenv('HF_CACHE_DIR'),
+            'hf_token': os.getenv('HUGGINGFACE_TOKEN')
+        }
+        return ProviderConfig(provider_name='huggingface', settings=settings)
+
+    elif provider_name == 'keyword':
+        # Keyword extraction has no configuration needed
+        settings = {}
+        return ProviderConfig(provider_name='keyword', settings=settings)
+
+    # Fall back to general provider config for other providers
+    return get_provider_config(provider_name)
+
+
+def get_categorization_provider_config(provider_name: str) -> Optional[ProviderConfig]:
+    """
+    Get configuration for categorization phase provider from environment variables.
+
+    Args:
+        provider_name: Name of the provider ('ollama', 'anthropic', 'openai', etc.)
+
+    Returns:
+        ProviderConfig if provider is configured, None otherwise
+    """
+    # Use general provider config for categorization
+    return get_provider_config(provider_name)
 
 
 def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
@@ -27,9 +68,12 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
         settings = {
             'host': os.getenv('OLLAMA_HOST', 'http://localhost:11434'),
             'model': os.getenv('OLLAMA_MODEL', 'llama3.2-vision:latest'),
+            'text_model': os.getenv('OLLAMA_TEXT_MODEL', 'llama3.2:latest'),
             'timeout': int(os.getenv('OLLAMA_TIMEOUT', '300')),
             'max_retries': int(os.getenv('OLLAMA_MAX_RETRIES', '2')),
-            'retry_delay': float(os.getenv('OLLAMA_RETRY_DELAY', '1.0'))
+            'retry_delay': float(os.getenv('OLLAMA_RETRY_DELAY', '1.0')),
+            # Saved category list; unset means ~/.config/image-categorizer/categories.yaml
+            'categories_file': os.getenv('CATEGORIES_FILE')
         }
         return ProviderConfig(provider_name='ollama', settings=settings)
     
@@ -68,7 +112,7 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
     elif provider_name == 'bedrock':
         if not (os.getenv('AWS_ACCESS_KEY_ID') and os.getenv('AWS_SECRET_ACCESS_KEY')):
             return None
-        
+
         settings = {
             'aws_access_key_id': os.getenv('AWS_ACCESS_KEY_ID'),
             'aws_secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY'),
@@ -76,5 +120,15 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
             'model': os.getenv('BEDROCK_MODEL', 'anthropic.claude-3-sonnet-20240229-v1:0')
         }
         return ProviderConfig(provider_name='bedrock', settings=settings)
-    
+
+    elif provider_name == 'huggingface':
+        settings = {
+            'vision_model': os.getenv('HF_VISION_MODEL', 'Salesforce/blip2-flan-t5-xl-coco'),
+            'text_model': os.getenv('HF_TEXT_MODEL', 'google/flan-t5-xl'),
+            'device': os.getenv('HF_DEVICE', 'auto'),
+            'cache_dir': os.getenv('HF_CACHE_DIR'),
+            'hf_token': os.getenv('HUGGINGFACE_TOKEN')
+        }
+        return ProviderConfig(provider_name='huggingface', settings=settings)
+
     return None
