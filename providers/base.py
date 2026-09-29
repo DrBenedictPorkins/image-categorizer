@@ -10,6 +10,7 @@ from pathlib import Path
 import time
 
 from models.image_data import CategorizationResult, ProviderConfig
+from core.image_processor import ImageProcessor
 
 if TYPE_CHECKING:
     from models.image_data import ImageData
@@ -187,7 +188,8 @@ class BaseLLMProvider(ABC):
             'supports_vision': self.supports_vision,
             'supports_batch_processing': True,
             'max_image_size': None,  # Override in subclasses if there are limits
-            'supported_formats': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
+            # Single source of truth for accepted formats, including HEIC
+            'supported_formats': ImageProcessor.get_supported_extensions(),
             'concurrent_requests': 1  # Override in subclasses for concurrent processing
         }
     

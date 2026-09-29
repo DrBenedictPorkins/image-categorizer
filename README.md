@@ -145,7 +145,8 @@ Settings live in `.env`; [`.env.example`](.env.example) lists them.
 
 All command-line options: `uv run python main.py --help` and
 [SETUP.md](SETUP.md#12-reference). Supported formats: `.jpg`, `.jpeg`, `.png`,
-`.gif`, `.bmp`, `.webp`; HEIC and videos are skipped.
+`.gif`, `.bmp`, `.webp`, `.heic`, `.heif`; videos are skipped. The report shows HEIC
+photos through JPEG previews kept in a hidden `.image-categorizer-previews` folder.
 
 ## Other providers
 

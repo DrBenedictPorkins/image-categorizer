@@ -117,6 +117,10 @@
   `metadata.resorted_from` (report badge). Results backed up as
   `categorization_results.before-resort-<time>.json`; scope rule also updates
   `categories.yaml`.
+- HEIC/HEIF: `pillow-heif` opener registered in `core/image_processor.py`;
+  `IMAGE_EXTENSIONS` is the single format list (providers read it via
+  `ImageProcessor.get_supported_extensions`). Report uses
+  `ImageProcessor.browser_preview`: JPEG previews in `<dir>/.image-categorizer-previews/`.
 - Report export script modes: move, caption (exiftool writes `Category: X` to
   XMP-dc:Description, IPTC Caption-Abstract, EXIF ImageDescription, keeping any
   existing caption), or both. Tested 2026-09-27: Photos imports the caption and

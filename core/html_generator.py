@@ -20,6 +20,7 @@ if __name__ == "__main__":
 
 from models.image_data import CategorizationResult, ImageData
 from core.categories import categories_file_path
+from core.image_processor import ImageProcessor
 
 
 class HTMLGenerator:
@@ -104,8 +105,13 @@ class HTMLGenerator:
         
         for image in images:
             try:
-                # Use relative file path for HTML
-                rel_filepath = image.filename
+                # Relative path the browser can display (JPEG preview for HEIC).
+                # A missing or unreadable original must not cost the photo its category.
+                try:
+                    rel_filepath = ImageProcessor.browser_preview(directory, image.filename)
+                except (OSError, ValueError) as e:
+                    print(f"No browser preview for {image.filename}: {e}")
+                    rel_filepath = image.filename
                 
                 card_data.append({
                     "filename": image.filename,

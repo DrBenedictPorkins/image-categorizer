@@ -38,8 +38,9 @@ belongs in it.
 | GPU memory | Only one model is loaded at a time, so the larger of the two models must fit. See section 5. |
 | exiftool | Optional. Only for writing categories into photo captions. |
 
-Supported photo formats: `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`. HEIC
-and videos are skipped.
+Supported photo formats: `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`, `.heic`,
+`.heif`. Videos are skipped. For HEIC photos the report creates JPEG previews in a
+hidden `.image-categorizer-previews` folder inside the photo folder.
 
 ## 3. Check the machine
 
@@ -263,7 +264,6 @@ changing anything.
 | `off-list category` messages in Phase 2 | Normal: those photos are asked again; photos that stay off-list go to `Unsorted`. |
 | Report opens but images are missing | The report must stay in the photo folder; it loads photos by relative name. |
 | `Template file not found` | Run from the repository root. |
-| HEIC photos missing | HEIC is not supported. Convert first, for example `sips -s format jpeg in.heic --out out.jpg` on macOS. |
 
 ## 12. Reference
 
