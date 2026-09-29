@@ -12,12 +12,12 @@
   `core/config.py`; no provider class, not selectable from the CLI).
 
 ## Project State (audited 2026-09-26)
-- Last code activity: Nov 2025. Last commit: `b1d7fdd`. Large amount of
-  uncommitted and untracked work sits on `main`.
-- Old one-off experiment scripts and the earlier Ollama provider copies live in
-  `sundry/experiments/`; several import the removed `ollama` package and no
-  longer run. The remaining root `test_*.py` files are ad-hoc scripts, not a
-  test suite; there is no pytest setup.
+- `sundry/` is an archive of one-off scripts (`experiments/`: ad-hoc test
+  scripts, old Ollama provider copies; `legacy/`: old prompts and category
+  lists). Several import the removed `ollama` package and no longer run. There is
+  no automated test suite.
+- `SETUP.md` is the install guide written for AI agents; `samples/` holds 11
+  public-domain images for its smoke test.
 - `sundry/` holds the pre-refactor `main_original.py` and old template. It is the
   only code that imports `openai`, `anthropic`, or `psutil`.
 - `.venv` is native arm64 CPython 3.12 (rebuilt 2026-09-26; the previous
@@ -102,6 +102,25 @@
 - Report (`template.html`) data: `{{card_data}}`, `{{categories_data}}` (name,
   count, rule, status), `{{report_meta}}`. Old template: `sundry/template_legacy.html`.
 - Phase 1 (`main.py describe_images_only`) saves every 10 images and resumes.
+- `--max-categories` (env `MAX_CATEGORIES`) caps the list: new lists are trimmed
+  to it (Accidental Shots kept), saved lists at the cap get no new categories.
+  `--plan-categories` (with `--categorize-from`) calls
+  `OllamaProvider.plan_categories`: builds/extends the list and saves it, no
+  results or report.
+- Re-sort: report button exports `resort.json` (directory, source category, note,
+  scope rule|once, categories with rules, every photo's current category, source
+  files). `main.py --resort FILE [--yes]` (`run_resort`): applies the report's
+  assignments to `categorization_results.json`, `OllamaProvider.rewrite_rules`
+  turns the note into rule changes (confirm), previews 10 photos, then
+  `resort_images` re-sorts the source photos with the note as an overriding
+  instruction; unplaceable photos stay. Moved photos get
+  `metadata.resorted_from` (report badge). Results backed up as
+  `categorization_results.before-resort-<time>.json`; scope rule also updates
+  `categories.yaml`.
+- Report export script modes: move, caption (exiftool writes `Category: X` to
+  XMP-dc:Description, IPTC Caption-Abstract, EXIF ImageDescription, keeping any
+  existing caption), or both. Tested 2026-09-27: Photos imports the caption and
+  iPhone search finds it after indexing; imported keywords are Mac-search only.
 
 ## Dependency Maintenance
 Upgrade done 2026-09-26; details in `docs/DEPENDENCY_AUDIT.md`.
@@ -125,7 +144,7 @@ Upgrade done 2026-09-26; details in `docs/DEPENDENCY_AUDIT.md`.
 - Keyword Phase 2 from saved descriptions:
   `uv run python main.py <dir> --categorization-provider keyword --categorize-from <dir>/descriptions_only.json`
 - Initial categories: `--init-categories "Nature,People,Food"` or a file path
-  (one category per line, e.g. `CATEGORIES.txt`)
+  (one category per line)
 - Skip opening the browser: `--no-html`
 - Rebuild HTML only: `uv run python core/html_generator.py <dir>/categorization_results.json`
 
@@ -147,15 +166,12 @@ Upgrade done 2026-09-26; details in `docs/DEPENDENCY_AUDIT.md`.
 ## Project Files
 - `main.py` - CLI entry point
 - `template.html` - HTML report template (loaded by relative path; run from repo root)
-- `prompts/` - prompt text files
-- `blip_prompt.txt` - legacy BLIP prompt
-- `CATEGORIES.txt` - sample initial-categories file
-- `docs/` - HuggingFace provider docs and the dependency audit
-- `test_images/` - sample images
+- `SETUP.md` - install and first-run guide for AI agents
+- `samples/` - public-domain smoke-test images (sources in `samples/README.md`)
+- `docs/` - HuggingFace provider docs, dependency audit, `design/` notes
+- `test_images/` - local test photos, gitignored (contains personal photos)
 - `sundry/` - pre-refactor code, legacy report template and experiment scripts, not used
 - `LICENSE` - MIT
-- Root `*_GUIDE.md` / `*_USAGE.md` / `*_TESTING.md` - design notes from the
-  phase-separation work
 
 ## Git & Version Control
 - Do not perform git-related commands (add, commit, push, etc.) unless explicitly requested

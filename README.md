@@ -19,7 +19,13 @@ and produces an interactive HTML report for reorganizing them.
 
 ## Quick Start
 
-Requires [uv](https://github.com/astral-sh/uv).
+**With an AI coding agent:** open the repository in Claude Code (or a similar agent)
+and ask it to follow [SETUP.md](SETUP.md). The guide checks the machine, installs
+what is missing, configures Ollama and the models, and runs a smoke test on the
+images in `samples/`.
+
+**By hand:** requires [uv](https://github.com/astral-sh/uv) and an
+[Ollama](https://ollama.com) server.
 
 ```bash
 git clone https://github.com/DrBenedictPorkins/image-categorizer.git
@@ -62,8 +68,8 @@ uv run python main.py "/path/to/images" --categorization-provider ollama \
 ```
 
 Then open the report, move or trash photos, click **Save categories** to keep
-your category list for next time, and **Export move script** to sort the files
-into folders.
+your category list for next time, and **Export script** to sort the files into
+folders, write each photo's category into its caption, or both.
 
 For reference: 1,195 iPad photos took about 80 minutes for Phase 1 and 8 minutes
 for Phase 2 with `qwen3.6:35b` and `mistral-small3.2:24b` on an RTX 4090.
@@ -96,7 +102,35 @@ categories:
     status: kept
 ```
 
-`status: new` marks categories the model added and you have not reviewed. Edit
+`status: new` marks categories the model added and you have not reviewed.
+
+To limit the number of categories, pass `--max-categories N` (or set
+`MAX_CATEGORIES`). Once the list is full, photos that fit no category go to
+Unsorted, and the run prints how many and what they show.
+
+### Re-sorting a category
+
+When a category holds photos that belong elsewhere, click the re-sort button on
+that category in the report, describe what went wrong (for example: "photos
+where a face is clearly visible belong in Portraits, even if they are blurry"),
+choose whether to update the saved rules or apply the note to this re-sort only,
+and download `resort.json`. Then run:
+
+```bash
+uv run python main.py --resort ~/Downloads/resort.json
+```
+
+The text model rewrites the note into rule changes and shows them for approval,
+previews the result on 10 photos, and, after a second confirmation, re-sorts
+only that category's photos. Photos that fit no other category stay where they
+were. `categorization_results.json` is backed up, rewritten, and the report is
+rebuilt with moved photos marked **Re-sorted**. Moves and trashing done in the
+report before exporting are kept. `--yes` answers both confirmations.
+
+To review the list before any photo is sorted, run Phase 2 with
+`--plan-categories`: it builds or extends the saved list and stops. Edit
+`categories.yaml`, then run Phase 2 without the flag.
+ Edit
 the file by hand, or use **Save categories** in the report: it downloads the list
 with your renames, merges, rule edits and new categories, all marked kept.
 
@@ -216,8 +250,13 @@ See [docs/HUGGINGFACE_PROVIDER.md](docs/HUGGINGFACE_PROVIDER.md) and
 - Trash with restore to the original category
 - Full-size preview with arrow-key browsing, trash and restore
 - **Save categories**: downloads your category list for future runs
-- **Export move script**: a bash script that moves each photo into a folder
-  named after its category (trashed photos go to a Trash folder)
+- **Re-sort** (per category): exports `resort.json` for `main.py --resort`
+- **Export script**: a bash script that moves each photo into a folder named
+  after its category, writes `Category: <name>` into each photo's caption, or
+  both. Trashed photos go to a Trash folder; nothing is deleted. Captions are
+  searchable in the Photos app on Mac, iPhone and iPad after import (keywords
+  are searchable on the Mac only). Captions require
+  [exiftool](https://exiftool.org) (`brew install exiftool`)
 
 The template is `template.html` and is loaded by relative path, so run commands
 from the repository root.
@@ -256,11 +295,12 @@ or `cuda`.
 | `core/categories.py` | Saved category list (load, save) |
 | `core/image_processor.py` | Image discovery and validation |
 | `core/html_generator.py` | Builds the HTML report from results |
-| `template.html` | Report template (layout, drag and drop, move script) |
+| `template.html` | Report template (layout, drag and drop, export script) |
 | `models/image_data.py` | `ImageData`, `CategorizationResult` |
 | `providers/` | Ollama, HuggingFace and keyword providers |
-| `prompts/` | Prompt text files |
-| `docs/` | Provider guides and the dependency audit |
+| `SETUP.md` | Step-by-step install and first run, written for AI coding agents |
+| `samples/` | Public-domain test images for a smoke test |
+| `docs/` | Provider guides, dependency audit, design notes (`docs/design/`) |
 | `sundry/` | Pre-refactor code and experiment scripts, not used by the app |
 
 ## License
