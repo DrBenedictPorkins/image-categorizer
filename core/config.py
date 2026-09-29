@@ -73,7 +73,9 @@ def get_provider_config(provider_name: str) -> Optional[ProviderConfig]:
             'max_retries': int(os.getenv('OLLAMA_MAX_RETRIES', '2')),
             'retry_delay': float(os.getenv('OLLAMA_RETRY_DELAY', '1.0')),
             # Saved category list; unset means ~/.config/image-categorizer/categories.yaml
-            'categories_file': os.getenv('CATEGORIES_FILE')
+            'categories_file': os.getenv('CATEGORIES_FILE'),
+            # Upper bound on the number of categories; unset means no cap
+            'max_categories': int(os.getenv('MAX_CATEGORIES')) if os.getenv('MAX_CATEGORIES') else None
         }
         return ProviderConfig(provider_name='ollama', settings=settings)
     

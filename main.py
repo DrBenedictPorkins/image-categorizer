@@ -14,8 +14,10 @@ import os
 import sys
 import json
 import argparse
+import shlex
 import webbrowser
 import textwrap
+from datetime import datetime
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 
@@ -32,6 +34,7 @@ from core.config import (
 )
 from dotenv import load_dotenv
 from core.image_processor import ImageProcessor
+from core.categories import STATUS_KEPT, categories_file_path, load_categories, save_categories
 from models.image_data import CategorizationResult, ImageData
 from providers import (
     BaseLLMProvider,
@@ -526,6 +529,152 @@ def save_results(directory: str, result: CategorizationResult):
 
 
 
+# Categories that exist only in the report and are never sent to the model
+REPORT_ONLY_CATEGORIES = ("Trash", "Unsorted", "Restored")
+# Photos shown in the re-sort preview before the whole category is re-sorted
+RESORT_PREVIEW_SIZE = 10
+
+
+def _confirm(question: str, assume_yes: bool) -> bool:
+    """Ask a yes/no question on the terminal; --yes answers yes."""
+    if assume_yes:
+        print(f"{question} [y/N] y (--yes)")
+        return True
+    try:
+        return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
+    except EOFError:
+        return False
+
+
+def run_resort(resort_file: str, assume_yes: bool, open_html: bool) -> bool:
+    """
+    Re-sort the photos of one category using a note written in the report.
+
+    The note is rewritten into rule changes by the text model and shown for
+    approval, a sample is previewed, then the category's photos are re-sorted.
+    Photos the model cannot place stay where they were. Moved photos are marked
+    for review in the rebuilt report. Returns False if nothing was changed.
+    """
+    with open(resort_file, "r", encoding="utf-8") as f:
+        request = json.load(f)
+    for key in ("directory", "source", "note", "scope", "categories", "assignments", "files"):
+        if key not in request:
+            print(f"Error: {resort_file} is missing '{key}'; export it again from the report")
+            return False
+
+    directory, source = request["directory"], request["source"]
+    note, scope = request["note"].strip(), request["scope"]
+    results_path = os.path.join(directory, "categorization_results.json")
+    if not os.path.exists(results_path):
+        print(f"Error: no categorization_results.json in {directory}")
+        return False
+    with open(results_path, "r", encoding="utf-8") as f:
+        result = CategorizationResult.from_dict(json.load(f))
+
+    # Start from the report's state so manual moves and trashing are kept
+    for image in result.images:
+        image.primary_category = request["assignments"].get(image.filename, image.primary_category)
+    subset = [img for img in result.images if img.filename in set(request["files"])]
+    categories = [
+        {"name": c["name"], "rule": c.get("rule", ""), "status": c.get("status", "")}
+        for c in request["categories"]
+        if c["name"] not in REPORT_ONLY_CATEGORIES or c.get("rule")
+    ]
+    if not subset:
+        print(f"Error: none of the {len(request['files'])} photos in the file are in {results_path}")
+        return False
+
+    print(f"Re-sorting {len(subset)} photos from '{source}'")
+    print(f"Note: {note}")
+    print(f"Scope: {'update the saved rules' if scope == 'rule' else 'this re-sort only'}\n")
+
+    provider = initialize_categorization_provider("ollama")
+    try:
+        changes = provider.rewrite_rules(note, source, categories)
+        rules = {c["name"]: c["rule"] for c in categories}
+        if changes:
+            print("\nProposed rule changes:")
+            for change in changes:
+                print(f"\n  {change['name']}")
+                print(f"    now: {rules.get(change['name']) or '(no rule)'}")
+                print(f"    new: {change['rule']}")
+        else:
+            print("\nThe model proposed no rule changes; the note is used as an instruction only.")
+        if not _confirm("\nUse these rules for the re-sort?", assume_yes):
+            print("Stopped. Nothing was changed.")
+            return False
+        for change in changes:
+            rules[change["name"]] = change["rule"]
+        updated = [dict(c, rule=rules[c["name"]]) for c in categories]
+
+        # Preview on an even sample before touching the whole category
+        step = max(1, len(subset) // RESORT_PREVIEW_SIZE)
+        sample = subset[::step][:RESORT_PREVIEW_SIZE]
+        print(f"\nPreview on {len(sample)} photos:")
+        preview = provider.resort_images(sample, updated, instruction=note)
+        for img in sample:
+            target = preview.get(img.filename, source)
+            target = source if target not in rules else target
+            print(f"  {img.filename}: {'stays in ' + source if target == source else source + ' -> ' + target}")
+        if not _confirm(f"\nRe-sort all {len(subset)} photos in '{source}'?", assume_yes):
+            print("Stopped. Nothing was changed.")
+            return False
+
+        assigned = provider.resort_images(subset, updated, instruction=note)
+    finally:
+        provider.cleanup()
+
+    moved = {}
+    for img in subset:
+        target = assigned.get(img.filename, source)
+        if target in rules and target != source:
+            moved[img.filename] = target
+            img.primary_category = target
+            img.metadata = dict(img.metadata or {}, resorted_from=source)
+    counts = {}
+    for target in moved.values():
+        counts[target] = counts.get(target, 0) + 1
+    print(f"\nMoved {len(moved)} of {len(subset)} photos out of '{source}'"
+          + (": " + ", ".join(f"{n} to {t}" for t, n in sorted(counts.items(), key=lambda x: -x[1])) if counts else ""))
+
+    # Keep the previous results, then write the new ones and rebuild the report
+    backup = results_path.replace(".json", f".before-resort-{datetime.now():%Y%m%d-%H%M%S}.json")
+    os.replace(results_path, backup)
+    definitions = updated if scope == "rule" else categories
+    new_result = CategorizationResult(
+        images=result.images,
+        processing_stats=dict(result.processing_stats, last_resort=source),
+        category_definitions=definitions,
+    )
+    with open(results_path, "w", encoding="utf-8") as f:
+        json.dump(new_result.to_dict(), f, indent=2)
+    print(f"Saved {results_path} (previous version: {os.path.basename(backup)})")
+
+    if scope == "rule" and changes:
+        path = categories_file_path(os.getenv("CATEGORIES_FILE"))
+        saved = load_categories(path)
+        if not saved:
+            # No saved list yet: start it from the report's full category list, so
+            # the rule change does not leave a list of only the changed categories
+            saved = [dict(c, status=STATUS_KEPT) for c in updated
+                     if c["name"] not in REPORT_ONLY_CATEGORIES]
+        by_name = {c["name"]: c for c in saved}
+        for change in changes:
+            if change["name"] in by_name:
+                by_name[change["name"]].update(rule=change["rule"], status=STATUS_KEPT)
+            else:
+                saved.append({"name": change["name"], "rule": change["rule"], "status": STATUS_KEPT})
+        save_categories(path, saved)
+        print(f"Updated {len(changes)} rule{'s' if len(changes) != 1 else ''} in {path}")
+
+    from core.html_generator import HTMLGenerator
+    html_file = HTMLGenerator().generate_report(directory, new_result)
+    print(f"Report: {html_file} (moved photos are marked Re-sorted)")
+    if open_html:
+        webbrowser.open(f"file://{os.path.abspath(html_file)}")
+    return True
+
+
 def main():
     """Main function with support for three workflow modes."""
 
@@ -593,12 +742,42 @@ def main():
     parser.add_argument("--init-categories",
                         help="Initial category suggestions (comma-separated list or file path with one category per line)")
 
+    parser.add_argument("--max-categories", type=int,
+                        help="Upper bound on the number of categories (Ollama Phase 2). Photos that fit "
+                             "none once the list is full go to Unsorted.")
+
+    parser.add_argument("--resort", metavar="RESORT_JSON",
+                        help="Re-sort one category using a resort.json exported from the report "
+                             "(Re-sort button). Asks for confirmation before changing anything.")
+
+    parser.add_argument("--yes", action="store_true",
+                        help="With --resort: answer yes to the confirmation questions")
+
+    parser.add_argument("--plan-categories", action="store_true",
+                        help="With --categorize-from: build or extend the saved category list and stop, "
+                             "without sorting photos or writing a report. Edit the list, then run Phase 2.")
+
     args = parser.parse_args()
 
     # Validate arguments and determine workflow mode
     workflow_mode = None
     desc_provider_name = None
     cat_provider_name = None
+
+    if args.resort:
+        if not os.path.exists(args.resort):
+            print(f"Error: file not found: {args.resort}")
+            sys.exit(1)
+        ok = run_resort(args.resort, args.yes, open_html=not args.no_html)
+        sys.exit(0 if ok else 1)
+
+    if args.plan_categories and not args.categorize_from:
+        print("Error: --plan-categories requires --categorize-from")
+        parser.print_help()
+        sys.exit(1)
+    if args.max_categories is not None and args.max_categories < 2:
+        print("Error: --max-categories must be at least 2 (Accidental Shots is always one of them)")
+        sys.exit(1)
 
     if args.categorize_from:
         # Mode 3: Categorization only
@@ -680,6 +859,10 @@ def main():
             os.environ['OPENAI_MODEL'] = args.model
         print(f"Using model: {args.model}")
 
+    if args.max_categories:
+        os.environ['MAX_CATEGORIES'] = str(args.max_categories)
+        print(f"Category cap: {args.max_categories}")
+
     # Execute workflow based on mode
     try:
         if workflow_mode == "description_only":
@@ -694,7 +877,8 @@ def main():
                 save_descriptions_only(args.directory, images)
                 print("\n✓ Description phase complete!")
                 print(f"\nNext step: Run categorization phase with:")
-                print(f"  python main.py {args.directory} --categorization-provider <provider> --categorize-from descriptions_only.json")
+                print(f"  python main.py {shlex.quote(args.directory)} --categorization-provider <provider> "
+                      f"--categorize-from {shlex.quote(os.path.join(args.directory, DESCRIPTIONS_FILE))}")
 
             finally:
                 provider.cleanup()
@@ -707,6 +891,16 @@ def main():
 
             provider = initialize_categorization_provider(cat_provider_name)
             try:
+                if args.plan_categories:
+                    if not hasattr(provider, 'plan_categories'):
+                        print(f"Error: {provider.provider_name} does not support --plan-categories")
+                        sys.exit(1)
+                    provider.plan_categories(images)
+                    print("\n✓ Category planning complete. Edit the saved list if needed, then run:")
+                    print(f"  python main.py {shlex.quote(args.directory)} --categorization-provider "
+                          f"{cat_provider_name} --categorize-from {shlex.quote(args.categorize_from)}")
+                    return
+
                 result = categorize_images_from_descriptions(images, provider)
                 if not result:
                     sys.exit(1)

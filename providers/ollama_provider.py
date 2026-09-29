@@ -56,6 +56,8 @@ class OllamaProvider(BaseLLMProvider):
         self.max_retries = 2
         self.retry_delay = 1.0
         self.categories_file = None
+        # Upper bound on the number of categories; None means no cap
+        self.max_categories: Optional[int] = None
         # Category list used by the last categorization, passed to the report
         self.category_definitions: List[Dict[str, str]] = []
 
@@ -82,6 +84,7 @@ class OllamaProvider(BaseLLMProvider):
             self.max_retries = self.config.get('max_retries', 2)
             self.retry_delay = self.config.get('retry_delay', 1.0)
             self.categories_file = self.config.get('categories_file')
+            self.max_categories = self.config.get('max_categories')
 
             # Ensure host has proper format
             if not self.host.startswith('http'):
@@ -536,10 +539,58 @@ class OllamaProvider(BaseLLMProvider):
     def _categorize_in_batches(self, valid_images: List[ImageData]):
         """Assign images to the user's saved category list, adding categories if needed.
 
-        With no saved list, one is built from these photos. With a saved list, every
-        photo is assigned to it with a "none of these" option; new categories are
-        proposed only from the photos that fit none, and kept only if photos land in
-        them. New categories are marked "new" for review and saved to the file.
+        See _resolve_categories for how the list is built or extended. Photos that
+        fit no category go to Unsorted. The list is saved back to the file.
+        """
+        taxonomy, assigned, saved, can_save = self._resolve_categories(valid_images, assign=True)
+        if not taxonomy:
+            print("Could not build a category list, applying fallback categorization")
+            self._apply_fallback_categorization(valid_images)
+            return
+
+        # Photos that still fit nothing go to Unsorted, which is not saved
+        unsorted = [f for f, c in assigned.items() if c == NONE_OPTION]
+        for filename in unsorted:
+            assigned[filename] = UNSORTED_CATEGORY
+        if unsorted:
+            self._report_unsorted([img for img in valid_images if img.filename in set(unsorted)])
+
+        self.category_definitions = taxonomy
+        self._print_categories(taxonomy)
+
+        self._apply_categories_by_filename(
+            valid_images, [{'filename': f, 'final_category': c} for f, c in assigned.items()])
+        missing = [img for img in valid_images if img.filename not in assigned]
+        if missing:
+            print(f"{len(missing)} images still unassigned, applying fallback categorization")
+            self._apply_fallback_categorization(missing)
+
+        self._save_if_changed(taxonomy, saved, can_save)
+
+    def plan_categories(self, images: List[ImageData]) -> List[Dict[str, str]]:
+        """Build or extend the saved category list without assigning photos.
+
+        With no saved list this takes one request. With a saved list, photos are
+        assigned to find those that fit none, which is needed to propose new
+        categories, but no photo's category is changed.
+        """
+        if not self._initialized:
+            raise ProviderError("Provider not initialized")
+        valid_images = [img for img in images if img.description != "failed"]
+        taxonomy, _assigned, saved, can_save = self._resolve_categories(valid_images, assign=False)
+        self._print_categories(taxonomy)
+        self._save_if_changed(taxonomy, saved, can_save)
+        return taxonomy
+
+    def _resolve_categories(self, valid_images: List[ImageData], assign: bool):
+        """Return (category list, assignments, saved list, can_save).
+
+        No saved list: the list is built from the photos' suggestions, capped at
+        max_categories. Photos are assigned only if assign is set.
+        Saved list: photos are assigned with a "none of these" option. If enough fit
+        none and the cap allows, new categories are proposed for those photos and
+        kept only if enough photos land in them. Assignments are filename ->
+        category, or NONE_OPTION for photos that fit nothing.
         """
         path = categories_file_path(self.categories_file)
         can_save = True
@@ -554,60 +605,77 @@ class OllamaProvider(BaseLLMProvider):
         if not saved:
             if can_save:
                 print(f"No saved categories at {path}; building a category list from these photos")
-            taxonomy = self._with_accidental(
-                [dict(c, status=STATUS_NEW) for c in self._build_taxonomy(valid_images)])
+            built = [dict(c, status=STATUS_NEW) for c in self._build_taxonomy(valid_images)]
+            taxonomy = self._cap_list(self._with_accidental(built))
             if len(taxonomy) <= 1:
-                print("Could not build a category list, applying fallback categorization")
-                self._apply_fallback_categorization(valid_images)
-                return
-            assigned = self._assign_in_batches(valid_images, taxonomy, allow_none=False)
-        else:
-            print(f"Loaded {len(saved)} saved categories from {path}")
-            taxonomy = self._with_accidental(saved)
-            assigned = self._assign_in_batches(valid_images, taxonomy, allow_none=True)
-            unmatched = [img for img in valid_images if assigned.get(img.filename) == NONE_OPTION]
-            minimum = max(3, len(valid_images) // 100)
-            if len(unmatched) >= minimum:
-                print(f"{len(unmatched)} photos fit no saved category; proposing new categories for them")
-                proposed = self._propose_categories_for(unmatched, taxonomy, minimum)
-                if proposed:
-                    second = self._assign_in_batches(unmatched, proposed, allow_none=True)
-                    sizes = Counter(second.values())
-                    kept = [c for c in proposed if sizes[c['name']] >= minimum]
-                    kept_names = {c['name'] for c in kept}
-                    small = [f"{c['name']} ({sizes[c['name']]})" for c in proposed if c['name'] not in kept_names]
-                    if small:
-                        print(f"Dropped proposed categories with fewer than {minimum} photos: {', '.join(small)}")
-                    # Photos in dropped categories stay NONE_OPTION and go to Unsorted
-                    assigned.update({f: c for f, c in second.items() if c in kept_names})
-                    taxonomy = taxonomy + kept
-            elif unmatched:
-                print(f"{len(unmatched)} photos fit no saved category, fewer than {minimum}; "
-                      f"they go to {UNSORTED_CATEGORY}")
+                return [], {}, saved, can_save
+            assigned = self._assign_in_batches(valid_images, taxonomy, allow_none=False) if assign else {}
+            return taxonomy, assigned, saved, can_save
 
-        # Photos that still fit nothing go to Unsorted, which is not saved
-        for filename, category in assigned.items():
-            if category == NONE_OPTION:
-                assigned[filename] = UNSORTED_CATEGORY
+        print(f"Loaded {len(saved)} saved categories from {path}")
+        taxonomy = self._with_accidental(saved)
+        if self.max_categories and len(taxonomy) > self.max_categories:
+            print(f"Saved list has {len(taxonomy)} categories, above the cap of "
+                  f"{self.max_categories}; no categories are removed, and none will be added")
+        assigned = self._assign_in_batches(valid_images, taxonomy, allow_none=True)
+        unmatched = [img for img in valid_images if assigned.get(img.filename) == NONE_OPTION]
+        minimum = max(3, len(valid_images) // 100)
+        room = (self.max_categories - len(taxonomy)) if self.max_categories else MAX_NEW_CATEGORIES_PER_RUN
+        if len(unmatched) >= minimum and room <= 0:
+            print(f"{len(unmatched)} photos fit no saved category, but the list is at the cap of "
+                  f"{self.max_categories} categories; no new categories proposed")
+        elif len(unmatched) >= minimum:
+            print(f"{len(unmatched)} photos fit no saved category; proposing new categories for them")
+            proposed = self._propose_categories_for(
+                unmatched, taxonomy, minimum, min(room, MAX_NEW_CATEGORIES_PER_RUN))
+            if proposed:
+                second = self._assign_in_batches(unmatched, proposed, allow_none=True)
+                sizes = Counter(second.values())
+                kept = [c for c in proposed if sizes[c['name']] >= minimum]
+                kept_names = {c['name'] for c in kept}
+                small = [f"{c['name']} ({sizes[c['name']]})" for c in proposed if c['name'] not in kept_names]
+                if small:
+                    print(f"Dropped proposed categories with fewer than {minimum} photos: {', '.join(small)}")
+                # Photos in dropped categories stay NONE_OPTION
+                assigned.update({f: c for f, c in second.items() if c in kept_names})
+                taxonomy = taxonomy + kept
+        elif unmatched:
+            print(f"{len(unmatched)} photos fit no saved category, fewer than {minimum}; "
+                  f"no new category proposed")
+        return taxonomy, assigned, saved, can_save
 
-        self.category_definitions = taxonomy
+    def _cap_list(self, taxonomy: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Trim a newly built list to max_categories, always keeping Accidental Shots."""
+        if not self.max_categories or len(taxonomy) <= self.max_categories:
+            return taxonomy
+        accidental = [c for c in taxonomy if c['name'].lower() == ACCIDENTAL_CATEGORY.lower()]
+        others = [c for c in taxonomy if c not in accidental]
+        return others[:self.max_categories - len(accidental)] + accidental
+
+    @staticmethod
+    def _report_unsorted(images: List[ImageData]):
+        """Print how many photos went to Unsorted and what they were suggested to show."""
+        counts = Counter(
+            cat.strip().lower() for img in images for cat in (img.suggested_categories or []) if cat.strip())
+        common = ", ".join(f"{name} ({n})" for name, n in counts.most_common(8))
+        print(f"{len(images)} photos went to {UNSORTED_CATEGORY}. Most common suggestions: {common or 'none'}")
+
+    @staticmethod
+    def _print_categories(taxonomy: List[Dict[str, str]]):
         print(f"Category list ({len(taxonomy)}):")
         for cat in taxonomy:
             marker = " [new]" if cat.get('status') == STATUS_NEW else ""
             print(f"  {cat['name']}{marker}: {cat['rule']}")
 
-        self._apply_categories_by_filename(
-            valid_images, [{'filename': f, 'final_category': c} for f, c in assigned.items()])
-        missing = [img for img in valid_images if img.filename not in assigned]
-        if missing:
-            print(f"{len(missing)} images still unassigned, applying fallback categorization")
-            self._apply_fallback_categorization(missing)
-
-        if can_save and taxonomy != saved:
-            save_categories(path, taxonomy)
-            added = [c['name'] for c in taxonomy if c.get('status') == STATUS_NEW]
-            print(f"Saved {len(taxonomy)} categories to {path}"
-                  + (f"; new, for review: {', '.join(added)}" if added else ""))
+    def _save_if_changed(self, taxonomy: List[Dict[str, str]], saved: List[Dict[str, str]], can_save: bool):
+        """Write the list back to the categories file if it changed."""
+        if not can_save or not taxonomy or taxonomy == saved:
+            return
+        path = categories_file_path(self.categories_file)
+        save_categories(path, taxonomy)
+        added = [c['name'] for c in taxonomy if c.get('status') == STATUS_NEW]
+        print(f"Saved {len(taxonomy)} categories to {path}"
+              + (f"; new, for review: {', '.join(added)}" if added else ""))
 
     @staticmethod
     def _with_accidental(taxonomy: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -620,11 +688,13 @@ class OllamaProvider(BaseLLMProvider):
         self,
         images: List[ImageData],
         taxonomy: List[Dict[str, str]],
-        allow_none: bool
+        allow_none: bool,
+        instruction: Optional[str] = None
     ) -> Dict[str, str]:
         """Assign images to the category list in batches; returns filename -> category.
 
         With allow_none, a photo may be answered NONE_OPTION when it fits no rule.
+        An instruction, if given, overrides every other assignment rule.
         """
         canonical = {cat['name'].lower(): cat['name'] for cat in taxonomy}
         lines = [f"- {cat['name']}: {cat['rule']}" for cat in taxonomy]
@@ -644,23 +714,29 @@ class OllamaProvider(BaseLLMProvider):
             for attempt in range(1 + CATEGORIZE_REASK_ROUNDS):
                 label = f"batch {n}" if attempt == 0 else f"batch {n} re-ask {attempt}"
                 assigned.update(self._assign_to_taxonomy(
-                    pending, categories_text, canonical, label, allow_none=allow_none))
+                    pending, categories_text, canonical, label,
+                    allow_none=allow_none, instruction=instruction))
                 pending = [img for img in batch if img.filename not in assigned]
                 if not pending:
                     break
                 print(f"Batch {n}: {len(pending)} images unassigned, re-asking for them only")
             if pending:
                 print(f"Batch {n}: {len(pending)} images still unassigned")
+                if allow_none:
+                    # Answers that stay off-list count as fitting no category, so
+                    # the photos go to Unsorted rather than to an off-list label
+                    assigned.update({img.filename: NONE_OPTION for img in pending})
         return assigned
 
     def _propose_categories_for(
         self,
         unmatched: List[ImageData],
         taxonomy: List[Dict[str, str]],
-        minimum: int
+        minimum: int,
+        limit: int
     ) -> List[Dict[str, str]]:
         """Ask the text model for new categories for photos that fit no saved rule."""
-        max_new = max(1, min(MAX_NEW_CATEGORIES_PER_RUN, len(unmatched) // minimum))
+        max_new = max(1, min(limit, len(unmatched) // minimum))
         # Keep the prompt bounded: an even sample of at most PROPOSE_SAMPLE_SIZE photos
         step = max(1, len(unmatched) // PROPOSE_SAMPLE_SIZE)
         sample = unmatched[::step][:PROPOSE_SAMPLE_SIZE]
@@ -718,7 +794,8 @@ class OllamaProvider(BaseLLMProvider):
         categories_text: str,
         canonical: Dict[str, str],
         label: str,
-        allow_none: bool = False
+        allow_none: bool = False,
+        instruction: Optional[str] = None
     ) -> Dict[str, str]:
         """Ask the text model to assign images to the fixed category list.
 
@@ -736,6 +813,7 @@ class OllamaProvider(BaseLLMProvider):
             {{blocks}}
 
             Rules:
+            {{instruction_rule}}
             - Use only category names from the list, spelled exactly as written
             - Photo quality comes before subject: every image whose description or
               initial categories mark it as accidental, failed, blurry or unusable goes
@@ -756,6 +834,11 @@ class OllamaProvider(BaseLLMProvider):
             f'because it is the closest one'
         ) if allow_none else ""
         prompt = prompt.replace("{none_rule}", none_rule)
+        instruction_rule = (
+            f"- This instruction from the user overrides every other rule below, "
+            f"including the photo-quality rule: {instruction}"
+        ) if instruction else ""
+        prompt = prompt.replace("{instruction_rule}", instruction_rule)
         # Substituted after dedent so multi-line blocks do not break it
         prompt = prompt.replace("{categories}", categories_text).replace(
             "{blocks}", self._filename_blocks(images))
@@ -778,6 +861,77 @@ class OllamaProvider(BaseLLMProvider):
             result[filename] = category
         return result
 
+    def rewrite_rules(
+        self,
+        note: str,
+        source: str,
+        categories: List[Dict[str, str]]
+    ) -> List[Dict[str, str]]:
+        """Turn a user's note about misfiled photos into rule changes.
+
+        Returns [{'name', 'rule'}] for existing categories whose rule should change,
+        each rule rewritten to include the note's distinction. Never adds categories.
+        """
+        if not self._initialized:
+            raise ProviderError("Provider not initialized")
+        existing = {c['name'].lower(): c['name'] for c in categories}
+        rules_text = "\n".join(f"- {c['name']}: {c.get('rule') or '(no rule yet)'}" for c in categories)
+        prompt = textwrap.dedent(f"""
+            A user sorts photos into these categories. Each category is followed by the
+            rule for what belongs in it:
+
+            {{rules}}
+
+            The user reviewed the category "{source}" and wrote this note about photos
+            that were put there by mistake:
+
+            "{{note}}"
+
+            Rewrite the note as changes to the rules above. Return the updated rule only
+            for each category whose rule has to change so that the note is followed:
+            usually "{source}" and the category the photos should move to.
+
+            Rules:
+            - Use existing category names exactly as written; never add a category
+            - Keep what each rule already says and add the note's distinction
+            - A category marked "(no rule yet)" needs a complete rule: first what belongs
+              in it, judging by its name, then the note's distinction
+            - One or two sentences per rule, in the form: Photos that ... Not photos that ...
+
+            CRITICAL: Return ONLY a raw YAML list. NO markdown, NO code blocks, NO explanations.
+
+            - name: Category Name
+              rule: Photos that ... Not photos that ...
+        """).strip().replace("{rules}", rules_text).replace("{note}", note.strip())
+
+        def validate(item, i):
+            self._validate_category(item, i)
+            if item['name'].strip().lower() not in existing:
+                raise ValueError(f"Item {i} names '{item['name']}', which is not an existing category")
+
+        items = self._request_yaml_list(prompt, validate, num_predict=800, label="rule rewrite")
+        if not items:
+            return []
+        changes = {}
+        for item in items:
+            changes[existing[item['name'].strip().lower()]] = item['rule'].strip()
+        return [{'name': name, 'rule': rule} for name, rule in changes.items()]
+
+    def resort_images(
+        self,
+        images: List[ImageData],
+        categories: List[Dict[str, str]],
+        instruction: Optional[str] = None
+    ) -> Dict[str, str]:
+        """Assign images to the given categories; returns filename -> category.
+
+        Photos the model cannot place are answered NONE_OPTION; callers keep those in
+        their current category.
+        """
+        if not self._initialized:
+            raise ProviderError("Provider not initialized")
+        return self._assign_in_batches(images, categories, allow_none=True, instruction=instruction)
+
     def _build_taxonomy(self, valid_images: List[ImageData]) -> List[Dict[str, str]]:
         """Ask the text model for one category list, each with an inclusion rule."""
         suggestions_text = self._suggestion_tally(valid_images)
@@ -789,7 +943,7 @@ class OllamaProvider(BaseLLMProvider):
 
             {{suggestions}}
 
-            Create 8-15 final categories for sorting the whole collection into folders.
+            Create {{count_rule}} final categories for sorting the whole collection into folders.
             For each category write one rule sentence that states which images belong
             in it and, where it could overlap another category, which do not.
 
@@ -809,6 +963,9 @@ class OllamaProvider(BaseLLMProvider):
               rule: Images that ...
         """).strip().replace("{suggestions}", suggestions_text)
 
+        prompt = prompt.replace("{count_rule}", (
+            f"at most {self.max_categories}" if self.max_categories and self.max_categories < 15
+            else "8-15") + f" (including \"{ACCIDENTAL_CATEGORY}\")")
         items = self._request_yaml_list(
             prompt, self._validate_category, num_predict=1500, label="category list")
         if items is None:
