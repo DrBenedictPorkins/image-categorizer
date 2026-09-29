@@ -1,307 +1,172 @@
-# AI Image Categorizer
+# Image Categorizer
 
-Describes a folder of images with a vision model, groups them into categories,
-and produces an interactive HTML report for reorganizing them.
+Sorts a folder of photos into categories using local AI models served by
+[Ollama](https://ollama.com). A vision model describes every photo and flags
+accidental shots; a text model sorts the photos into categories you keep and
+refine across runs. You review the result in a browser report and export a script
+that moves the files into folders, writes each category into the photo's caption,
+or both. No photo leaves your network.
 
-<div align="center">
-  <a href="https://www.youtube.com/watch?v=8wniawe13Xc">
-    <img src="https://img.youtube.com/vi/8wniawe13Xc/0.jpg" alt="Introduction Video" width="400">
-  </a>
-  <p>Introduction video</p>
-</div>
+Built for camera rolls full of accidental shots, near-duplicates and screenshots,
+where reviewing every photo by hand is not practical.
+
+![Report: categories with counts on the left, photos grouped by category with each category's rule](docs/images/report.png)
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/)
-[![Ollama](https://img.shields.io/badge/Ollama-Vision%20Models-purple)](https://ollama.ai/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ollama](https://img.shields.io/badge/runs%20on-Ollama-black)](https://ollama.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-> **Maintenance status:** dependencies were upgraded on 2026-09-26 (Python 3.12,
-> torch 2.14, transformers 5.17). See [docs/DEPENDENCY_AUDIT.md](docs/DEPENDENCY_AUDIT.md).
+## How it works
 
-## Quick Start
+1. **Describe.** A vision model looks at each photo, writes a short description,
+   and decides whether it is an accidental or failed shot (motion blur, pocket
+   shot, no subject). Descriptions are saved as they go; an interrupted run
+   resumes where it stopped.
+2. **Sort.** A text model assigns every photo to a category using the descriptions
+   only, so re-sorting takes minutes and never looks at the images again. Each
+   category has a rule describing what belongs in it, and the list is saved and
+   reused for every library.
+3. **Review.** A report in the browser lets you move photos between categories,
+   trash them, and rename, merge or create categories.
+4. **Apply.** The report exports a bash script: move each photo into a folder named
+   after its category, write `Category: <name>` into its caption (searchable in the
+   Photos app on Mac, iPhone and iPad), or both. Nothing is deleted.
 
-**With an AI coding agent:** open the repository in Claude Code (or a similar agent)
-and ask it to follow [SETUP.md](SETUP.md). The guide checks the machine, installs
+The tool itself never moves, renames or deletes a photo.
+
+## Quick start
+
+**With an AI coding agent.** Open the repository in Claude Code (or a similar
+agent) and ask it to follow [SETUP.md](SETUP.md). It checks the machine, installs
 what is missing, configures Ollama and the models, and runs a smoke test on the
-images in `samples/`.
+images in [`samples/`](samples/).
 
-**By hand:** requires [uv](https://github.com/astral-sh/uv) and an
-[Ollama](https://ollama.com) server.
+**By hand.** You need [uv](https://docs.astral.sh/uv/) and an Ollama server, on
+this machine or another one on your network.
 
 ```bash
 git clone https://github.com/DrBenedictPorkins/image-categorizer.git
 cd image-categorizer
 uv sync
+
+ollama pull qwen3.6:35b            # vision model (describe)
+ollama pull mistral-small3.2:24b   # text model (sort)
+cp .env.example .env               # set OLLAMA_HOST if Ollama runs elsewhere
+
+uv run python main.py samples --provider ollama
 ```
 
-Run fully locally with Ollama. Pull a vision model for descriptions and a text
-model for categorization, then point the tool at them in `.env` (values in `.env`
-take precedence over exported variables):
+The last command sorts the eleven sample images and opens the report. Smaller
+model pairs for 8-16 GB GPUs are listed in [SETUP.md](SETUP.md#5-ollama-and-models).
+
+## Sorting a large library
+
+Describe once, then sort as often as you like:
 
 ```bash
-ollama pull qwen3.6:35b            # vision model, Phase 1
-ollama pull mistral-small3.2:24b   # text model, Phase 2
-cp .env.example .env               # then set OLLAMA_MODEL and OLLAMA_TEXT_MODEL
-uv run python main.py /path/to/images --provider ollama
+# Describe every photo (hours for thousands; rerun the same command to resume)
+uv run python main.py "/path/to/photos" --description-provider ollama --describe-only
+
+# Optional: build the category list and stop, to edit it before sorting
+uv run python main.py "/path/to/photos" --categorization-provider ollama \
+    --categorize-from "/path/to/photos/descriptions_only.json" --plan-categories --max-categories 12
+
+# Sort and open the report (minutes)
+uv run python main.py "/path/to/photos" --categorization-provider ollama \
+    --categorize-from "/path/to/photos/descriptions_only.json" --max-categories 12
 ```
 
-Or fully locally with HuggingFace models (downloaded on first run):
+For reference: 1,195 photos took about 80 minutes to describe and 8 minutes to
+sort with `qwen3.6:35b` and `mistral-small3.2:24b` on an RTX 4090.
 
-```bash
-uv run python main.py /path/to/images --provider huggingface
-```
+## The report
 
-No API key is required. The report `image_categories.html` is written into the
-image directory and opened in the default browser.
+![Full-size preview of an accidental shot with the model's description](docs/images/preview.png)
 
-### Recommended workflow for large libraries
+- Photos grouped by category; the rail on the left shows counts and accepts drops
+- Move a photo by dragging it or with its category menu, which also offers the
+  model's suggested categories
+- Rename, merge (rename to an existing name), create and remove categories; edit
+  each category's rule
+- Trash with restore; move a whole category to Trash in one step
+- Full-size preview with the model's description; arrow keys browse the category
+- **Save categories** downloads the category list, with your edits, for future runs
+- **Export script** writes the organize script
 
-Describe once, then categorize as often as you like:
+![Export dialog: move into folders, write category into caption, or both](docs/images/export.png)
 
-```bash
-# Phase 1: describe every photo (saves progress; rerun to resume after a crash)
-uv run python main.py "/path/to/images" --description-provider ollama --describe-only \
-    --init-categories "Portraits,Family Photos,Accidental Shots"
+Writing captions requires [exiftool](https://exiftool.org). An existing caption is
+kept; a previous `Category:` part is replaced, so the script can be run again.
 
-# Phase 2: categorize from the saved descriptions (minutes, no image processing)
-uv run python main.py "/path/to/images" --categorization-provider ollama \
-    --categorize-from "/path/to/images/descriptions_only.json"
-```
+## Categories that carry over
 
-Then open the report, move or trash photos, click **Save categories** to keep
-your category list for next time, and **Export script** to sort the files into
-folders, write each photo's category into its caption, or both.
-
-For reference: 1,195 iPad photos took about 80 minutes for Phase 1 and 8 minutes
-for Phase 2 with `qwen3.6:35b` and `mistral-small3.2:24b` on an RTX 4090.
-
-## How It Works
-
-Processing is split into two phases that can use different providers.
-
-**Phase 1 - Description.** A vision model describes each image, judges whether
-it is an accidental or failed shot, and suggests 2-5 categories for it. Progress
-is saved to `descriptions_only.json` every 10 images; rerunning the same command
-resumes and retries failed images.
-
-**Phase 2 - Categorization (Ollama).** A text model assigns each image to your
-saved category list, in batches of 40. Each category has a rule describing what
-belongs in it. On the first run, with no saved list, the list is built from the
-images' suggestions. On later runs, images that fit no saved rule are grouped
-into new categories, which are kept only if enough images land in them, marked
-new, and saved for you to review. Images that still fit nothing go to Unsorted.
-
-### Saved categories
-
-The category list lives in `~/.config/image-categorizer/categories.yaml`
-(override with `CATEGORIES_FILE`) and is reused for every photo library:
+Categories are saved in `~/.config/image-categorizer/categories.yaml` (override
+with `CATEGORIES_FILE`) and reused for every library:
 
 ```yaml
 categories:
   - name: Portraits
-    rule: Photos of people looking at the camera, including selfies.
+    rule: Photos of people looking at the camera, including selfies. Not group photos.
     status: kept
 ```
 
-`status: new` marks categories the model added and you have not reviewed.
+The first run builds the list from the photos. Later runs sort into the saved
+list; only when enough photos fit none of the rules does the model propose a new
+category, marked `new` in the report until you save the list. `--max-categories`
+caps the list: once it is full, photos that fit nothing go to `Unsorted`.
 
-To limit the number of categories, pass `--max-categories N` (or set
-`MAX_CATEGORIES`). Once the list is full, photos that fit no category go to
-Unsorted, and the run prints how many and what they show.
-
-### Re-sorting a category
+## Re-sorting a category
 
 When a category holds photos that belong elsewhere, click the re-sort button on
-that category in the report, describe what went wrong (for example: "photos
-where a face is clearly visible belong in Portraits, even if they are blurry"),
-choose whether to update the saved rules or apply the note to this re-sort only,
-and download `resort.json`. Then run:
+that category and describe what went wrong.
+
+![Re-sort dialog with a note describing which photos were misfiled](docs/images/resort.png)
 
 ```bash
 uv run python main.py --resort ~/Downloads/resort.json
 ```
 
-The text model rewrites the note into rule changes and shows them for approval,
-previews the result on 10 photos, and, after a second confirmation, re-sorts
-only that category's photos. Photos that fit no other category stay where they
-were. `categorization_results.json` is backed up, rewritten, and the report is
-rebuilt with moved photos marked **Re-sorted**. Moves and trashing done in the
-report before exporting are kept. `--yes` answers both confirmations.
-
-To review the list before any photo is sorted, run Phase 2 with
-`--plan-categories`: it builds or extends the saved list and stops. Edit
-`categories.yaml`, then run Phase 2 without the flag.
- Edit
-the file by hand, or use **Save categories** in the report: it downloads the list
-with your renames, merges, rule edits and new categories, all marked kept.
-
-Splitting the phases allows:
-- Re-running categorization without re-describing images.
-- Describing locally and categorizing with a different provider.
-- Using a cheap keyword-based Phase 2 for quick iteration.
-
-## Providers
-
-| Provider | Phase 1 | Phase 2 | Runs where | Status |
-|---|---|---|---|---|
-| `ollama` | Yes | Yes | Ollama server (local or remote) | Implemented |
-| `huggingface` | Yes | Yes | In-process, local models | Implemented |
-| `keyword` | No | Yes | In-process, keyword matching | Implemented |
-| `anthropic`, `openai`, `bedrock` | - | - | - | Config stubs only, not implemented |
-
-## Usage
-
-### Workflow modes
-
-```bash
-# 1. Full pipeline, one provider for both phases
-uv run python main.py /path/to/images --provider ollama
-
-# 2. Phase 1 only - writes descriptions_only.json
-uv run python main.py /path/to/images --description-provider huggingface --describe-only
-
-# 3. Phase 2 only - from a saved descriptions file
-uv run python main.py /path/to/images --categorization-provider keyword \
-    --categorize-from /path/to/images/descriptions_only.json
-
-# 4. Two phases, different providers
-uv run python main.py /path/to/images \
-    --description-provider huggingface --categorization-provider ollama
-```
-
-### Options
-
-| Option | Meaning |
-|---|---|
-| `--init-categories "A,B,C"` or `--init-categories file.txt` | Category hints for Phase 1 (file: one per line) |
-| `--model <name>` | Overrides `OLLAMA_MODEL` |
-| `--no-html` | Do not open the report in a browser |
-
-### Rebuild the HTML report from existing results
-
-```bash
-uv run python core/html_generator.py /path/to/images/categorization_results.json
-```
-
-### Output files
-
-Written into the image directory:
-
-| File | Produced by |
-|---|---|
-| `descriptions_only.json` | Modes 2 and 4 |
-| `categorization_results.json` | Modes 1, 3 and 4 |
-| `image_categories.html` | Modes 1, 3 and 4 |
+The text model turns the note into rule changes and asks you to approve them,
+shows how 10 sample photos would move, then re-sorts only that category. Photos
+that fit no other category stay put. Moved photos are marked **Re-sorted** in the
+rebuilt report, and edits made in the report before exporting are kept.
 
 ## Configuration
 
-Settings are read from environment variables. A `.env` file in the repository
-root is loaded automatically; `.env.example` lists the variables.
+Settings live in `.env`; [`.env.example`](.env.example) lists them.
 
-### Ollama
-
-| Variable | Default |
+| Variable | Purpose |
 |---|---|
-| `OLLAMA_HOST` | `http://localhost:11434` |
-| `OLLAMA_MODEL` | `llama3.2-vision:latest` |
-| `OLLAMA_TEXT_MODEL` | `llama3.2:latest` |
-| `OLLAMA_TIMEOUT` | `300` seconds |
-| `OLLAMA_MAX_RETRIES` | `2` |
-| `OLLAMA_RETRY_DELAY` | `1.0` seconds, doubled on each retry |
+| `OLLAMA_HOST` | Ollama server, default `http://localhost:11434` |
+| `OLLAMA_MODEL` | Vision model for describing |
+| `OLLAMA_TEXT_MODEL` | Text model for sorting and re-sorting |
+| `CATEGORIES_FILE` | Saved category list |
+| `MAX_CATEGORIES` | Category cap |
 
-### HuggingFace
+All command-line options: `uv run python main.py --help` and
+[SETUP.md](SETUP.md#12-reference). Supported formats: `.jpg`, `.jpeg`, `.png`,
+`.gif`, `.bmp`, `.webp`; HEIC and videos are skipped.
 
-| Variable | Default |
-|---|---|
-| `HF_VISION_MODEL` | `Salesforce/blip2-flan-t5-xl-coco` |
-| `HF_TEXT_MODEL` | `google/flan-t5-xl` |
-| `HF_DEVICE` | `auto` (MPS, then CUDA, then CPU) |
-| `HF_CACHE_DIR` | HuggingFace default cache |
-| `HUGGINGFACE_TOKEN` | unset; needed only for gated models |
+## Other providers
 
-Predefined models:
+`--provider huggingface` runs BLIP-2, LLaVA or Flan-T5 in-process without Ollama
+([docs/HUGGINGFACE_PROVIDER.md](docs/HUGGINGFACE_PROVIDER.md)), and
+`--categorization-provider keyword` sorts by keyword matching. Both predate the
+saved categories and re-sort features, and are less maintained.
 
-- Vision: `Salesforce/blip2-flan-t5-xl-coco` (~15GB),
-  `llava-hf/llava-1.5-7b-hf` (~13GB),
-  `Salesforce/blip-image-captioning-base` (~2GB),
-  `openbmb/MiniCPM-V-2` (~8GB; does not currently load, see audit)
-- Text: `google/flan-t5-xl` (~3GB), `microsoft/phi-2` (~5GB)
-
-Other model IDs are attempted through the transformers Auto classes.
-
-Example, smaller and faster:
-
-```bash
-export HF_VISION_MODEL="Salesforce/blip-image-captioning-base"
-export HF_TEXT_MODEL="google/flan-t5-xl"
-uv run python main.py /path/to/images --provider huggingface
-```
-
-See [docs/HUGGINGFACE_PROVIDER.md](docs/HUGGINGFACE_PROVIDER.md) and
-[docs/QUICK_START_HUGGINGFACE.md](docs/QUICK_START_HUGGINGFACE.md).
-
-## HTML Report
-
-- Photos grouped by category, each category with its rule (click to edit) and a
-  New badge for categories added on this run
-- Category rail with counts; drag photos onto a category there or in the grid
-- Per-photo category menu, including suggested categories as new categories
-- Rename a category (renaming to an existing name merges them), create, remove
-  empty categories, move a whole category to Trash
-- Trash with restore to the original category
-- Full-size preview with arrow-key browsing, trash and restore
-- **Save categories**: downloads your category list for future runs
-- **Re-sort** (per category): exports `resort.json` for `main.py --resort`
-- **Export script**: a bash script that moves each photo into a folder named
-  after its category, writes `Category: <name>` into each photo's caption, or
-  both. Trashed photos go to a Trash folder; nothing is deleted. Captions are
-  searchable in the Photos app on Mac, iPhone and iPad after import (keywords
-  are searchable on the Mac only). Captions require
-  [exiftool](https://exiftool.org) (`brew install exiftool`)
-
-The template is `template.html` and is loaded by relative path, so run commands
-from the repository root.
-
-### Supported image formats
-
-`.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`
-
-## Troubleshooting
-
-**Ollama: connection refused** - start `ollama serve`, or set `OLLAMA_HOST` to
-the remote server.
-
-**Ollama: model not found** - `ollama pull <model>` for both `OLLAMA_MODEL` and
-`OLLAMA_TEXT_MODEL`.
-
-**HuggingFace: out of memory** - use `Salesforce/blip-image-captioning-base`,
-or set `HF_DEVICE=cpu`.
-
-**HuggingFace: slow** - check the startup line `Using device: ...` reports `mps`
-or `cuda`.
-
-## Requirements
-
-- Python 3.12+ (see `.python-version`)
-- For `ollama`: a running Ollama server with a vision model and a text model
-- For `huggingface`: disk and RAM for the chosen models; Apple Silicon (MPS) or
-  NVIDIA (CUDA) recommended
-
-## Project Layout
+## Project layout
 
 | Path | Contents |
 |---|---|
-| `main.py` | Command line, workflow modes, Phase 1 progress saving |
-| `core/config.py` | Provider settings from environment variables |
-| `core/categories.py` | Saved category list (load, save) |
-| `core/image_processor.py` | Image discovery and validation |
-| `core/html_generator.py` | Builds the HTML report from results |
-| `template.html` | Report template (layout, drag and drop, export script) |
-| `models/image_data.py` | `ImageData`, `CategorizationResult` |
-| `providers/` | Ollama, HuggingFace and keyword providers |
-| `SETUP.md` | Step-by-step install and first run, written for AI coding agents |
-| `samples/` | Public-domain test images for a smoke test |
-| `docs/` | Provider guides, dependency audit, design notes (`docs/design/`) |
-| `sundry/` | Pre-refactor code and experiment scripts, not used by the app |
+| `main.py` | Command line, workflows, re-sort |
+| `providers/ollama_provider.py` | Describing, sorting, category proposals, rule rewrites |
+| `core/categories.py` | Saved category list |
+| `core/html_generator.py`, `template.html` | Report |
+| `models/image_data.py` | Result data model |
+| `SETUP.md` | Install and first run, written for AI coding agents |
+| `samples/` | Public-domain sample images ([sources](samples/README.md)) |
+| `docs/` | Provider guides, dependency audit, design notes, README images |
+| `sundry/` | Archive of one-off scripts, not used by the app |
 
 ## License
 
