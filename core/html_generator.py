@@ -75,6 +75,8 @@ class HTMLGenerator:
             "generated": datetime.now().isoformat(timespec='seconds'),
             "total_images": len(result.images),
             "categories_file": str(categories_file_path(os.getenv('CATEGORIES_FILE'))),
+            # Where to run main.py from, for commands shown in the report
+            "app_dir": str(Path(__file__).resolve().parent.parent),
         }
 
         # Replace template placeholders

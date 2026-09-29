@@ -60,7 +60,7 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
-button, select, input { font: inherit; color: inherit; }
+button, select, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
 svg { display: block; }
@@ -299,6 +299,21 @@ dialog::backdrop { background: rgba(10, 13, 16, .55); backdrop-filter: blur(3px)
 .field-error { min-height: 18px; color: var(--trash); font-size: 13px; }
 
 #script-dialog, #save-dialog { max-width: min(920px, calc(100vw - 32px)); width: 100%; }
+.mode-choice { display: flex; flex-wrap: wrap; gap: 8px; }
+#resort-dialog { max-width: min(720px, calc(100vw - 32px)); width: 100%; }
+.badge-resorted {
+  position: absolute; top: 8px; left: 8px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--action); color: var(--action-ink);
+  font-size: 11.5px; font-weight: 700;
+}
+.mode-choice label {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.mode-choice label:has(input:checked) { border-color: var(--action); background: var(--action-soft); color: var(--action); }
+.mode-choice input { accent-color: var(--action); margin: 0; }
 #script-text, #save-text {
   margin: 0; max-height: 52vh; overflow: auto;
   padding: 14px 16px; border-radius: 10px;
@@ -419,7 +434,7 @@ kbd {
     </button>
     <button class="btn primary" id="export-btn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h6l2 2h8v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M12 12v5M9.5 14.5 12 17l2.5-2.5"/></svg>
-      Export move script
+      Export script
     </button>
   </div>
 </header>
@@ -506,8 +521,13 @@ kbd {
 <!-- Move script -->
 <dialog id="script-dialog">
   <div class="dlg">
-    <h3>Move script</h3>
-    <p class="script-note">Running this script creates one folder per category inside the photo folder and moves each photo into its folder. Trashed photos go to a folder named Trash; nothing is deleted.</p>
+    <h3>Organize script</h3>
+    <div class="mode-choice" role="radiogroup" aria-label="What the script does">
+      <label><input type="radio" name="script-mode" value="move" checked> Move into folders</label>
+      <label><input type="radio" name="script-mode" value="caption"> Write category into caption</label>
+      <label><input type="radio" name="script-mode" value="both"> Both</label>
+    </div>
+    <p class="script-note" id="script-note"></p>
     <pre id="script-text"></pre>
     <div class="dlg-foot">
       <button class="btn" type="button" data-close>Close</button>
@@ -515,6 +535,30 @@ kbd {
       <button class="btn primary" type="button" id="download-script">Download organize_images.sh</button>
     </div>
   </div>
+</dialog>
+
+<!-- Re-sort a category -->
+<dialog id="resort-dialog">
+  <form class="dlg" id="resort-form" method="dialog">
+    <h3 id="resort-title">Re-sort</h3>
+    <p class="script-note" id="resort-intro"></p>
+    <label class="field">
+      <span>What went wrong</span>
+      <textarea id="resort-note" maxlength="600" placeholder="For example: photos where a face is clearly visible belong in Portraits, even if they are blurry."></textarea>
+      <span class="field-hint">The text model rewrites this into rule changes and shows them to you before anything moves.</span>
+    </label>
+    <div class="mode-choice" role="radiogroup" aria-label="Scope">
+      <label><input type="radio" name="resort-scope" value="rule" checked> Update the saved rules</label>
+      <label><input type="radio" name="resort-scope" value="once"> This re-sort only</label>
+    </div>
+    <div class="field-error" id="resort-error" role="alert"></div>
+    <p class="script-note">After downloading, run:</p>
+    <pre class="cmd" id="resort-cmd"></pre>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Close</button>
+      <button class="btn primary" type="submit">Download resort.json</button>
+    </div>
+  </form>
 </dialog>
 
 <!-- Save categories -->
@@ -555,6 +599,7 @@ const ICONS = {
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
   rename: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
   trashAll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/><path d="M9.5 12.5 12 15l2.5-2.5M12 15v-5"/></svg>',
+  resort: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h7M4 17h5"/><path d="M17 10V20M14 17l3 3 3-3"/></svg>',
   remove: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
 };
 
@@ -658,6 +703,8 @@ function ensureCategory(name, definition = {}) {
     tools.append(
       el('button', { class: 'icon-btn', type: 'button', html: ICONS.rename, title: 'Rename category',
         'aria-label': `Rename ${name}`, onclick: () => startRename(cat) }),
+      el('button', { class: 'icon-btn', type: 'button', html: ICONS.resort, title: 'Re-sort this category',
+        'aria-label': `Re-sort ${name}`, onclick: () => openResort(cat) }),
       el('button', { class: 'icon-btn trashy', type: 'button', html: ICONS.trashAll, title: 'Move all photos to Trash',
         'aria-label': `Move all photos in ${name} to Trash`, onclick: () => confirmTrashAll(cat) }),
     );
@@ -887,8 +934,12 @@ function createCard(data) {
     if (value === TRASH) trashCard(card);
     else moveCard(card, value);
   });
+  const resortedFrom = data.metadata && data.metadata.resorted_from;
+  const badge = resortedFrom
+    ? el('span', { class: 'badge-resorted', text: 'Re-sorted', title: `Moved here from ${resortedFrom} by a re-sort. Check it.` })
+    : null;
   card.el = el('figure', { class: 'card', draggable: 'true' }, [
-    thumb, card.trashBtn,
+    thumb, card.trashBtn, badge,
     el('figcaption', { class: 'card-body' }, [
       el('div', { class: 'card-line' }, [
         el('span', { class: 'fname', text: data.filename, title: data.filename }),
@@ -1120,49 +1171,96 @@ document.getElementById('new-cat-form').addEventListener('submit', e => {
 function shellQuote(value) { return `'${String(value).replace(/'/g, `'\\''`)}'`; }
 function folderName(category) { return category.replace(/\//g, '-'); }
 
-function buildScript() {
+const SCRIPT_NOTES = {
+  move: 'Creates one folder per category inside the photo folder and moves each photo into its folder. Trashed photos go to a folder named Trash; nothing is deleted.',
+  caption: 'Writes "Category: <name>" into each photo\'s caption. An existing caption is kept, and a previous "Category:" part is replaced. Photos app search on Mac, iPhone and iPad finds captions after import. Requires exiftool (brew install exiftool).',
+  both: 'Writes each photo\'s category into its caption, then moves it into a folder named after its category. Trashed photos go to a Trash folder; nothing is deleted. Requires exiftool (brew install exiftool).',
+};
+
+function scriptMode() {
+  return document.querySelector('input[name="script-mode"]:checked')?.value || 'move';
+}
+
+function buildScript(mode = 'move') {
+  const doMove = mode === 'move' || mode === 'both';
+  const doCaption = mode === 'caption' || mode === 'both';
   const lines = [
     '#!/bin/bash',
     '# Generated by AI Image Categorizer',
     `# Generated on: ${new Date().toLocaleString()}`,
-    '# Moves each photo into a folder named after its category.',
+    doCaption && doMove ? '# Writes each photo\'s category into its caption, then moves it into a folder named after the category.'
+      : doCaption ? '# Writes each photo\'s category into its caption.'
+      : '# Moves each photo into a folder named after its category.',
     '',
     'set -e',
     '',
     `SOURCE_DIR=${shellQuote(META.directory || '.')}`,
     '',
+  ];
+  if (doCaption) {
+    lines.push(
+      'if ! command -v exiftool >/dev/null 2>&1; then',
+      '  echo "exiftool is required to write captions. Install it with: brew install exiftool"',
+      '  exit 1',
+      'fi',
+      '',
+      '# Keep an existing caption; replace only a previous "Category: ..." part',
+      'set_caption() {',
+      '  local file="$1" category="Category: $2" current new',
+      '  current=$(exiftool -s3 -XMP-dc:Description -- "$file" 2>/dev/null || true)',
+      '  [ -z "$current" ] && current=$(exiftool -s3 -IPTC:Caption-Abstract -- "$file" 2>/dev/null || true)',
+      '  current=$(printf \'%s\' "$current" | perl -pe \'s/(^|\\s*\\|\\s*)Category: [^|]*$//\')',
+      '  if [ -n "$current" ]; then new="$current | $category"; else new="$category"; fi',
+      '  exiftool -q -q -overwrite_original -P -charset iptc=utf8 -IPTC:CodedCharacterSet=utf8 \\',
+      '    "-XMP-dc:Description=$new" "-IPTC:Caption-Abstract=$new" "-EXIF:ImageDescription=$new" \\',
+      '    -- "$file" >/dev/null 2>&1 && echo "captioned: $file ($2)" || echo "Failed to caption $file"',
+      '}',
+      '',
+    );
+  }
+  lines.push(
     'echo "Organizing photos in: ${SOURCE_DIR}"',
     'read -r -n 1 -s -p "Press any key to continue, or Ctrl+C to abort. "',
     'echo',
     'cd "${SOURCE_DIR}"',
     '',
-  ];
-  let moved = 0;
+  );
+  let count = 0;
   for (const cat of cats.values()) {
     const files = [...cat.grid.querySelectorAll('.card')].map(node => cardByEl.get(node).data.filename);
     if (!files.length) continue;
     const dir = shellQuote(folderName(cat.name));
-    lines.push(`# ${cat.name} (${files.length})`, `mkdir -p -- ${dir}`);
+    const catArg = shellQuote(cat.name);
+    lines.push(`# ${cat.name} (${files.length})`);
+    if (doMove) lines.push(`mkdir -p -- ${dir}`);
     for (const file of files) {
       const f = shellQuote(file);
-      lines.push(`mv -v -- ${f} ${dir}/ || echo "Failed to move" ${f}`);
-      moved += 1;
+      if (doCaption) lines.push(`set_caption ${f} ${catArg}`);
+      if (doMove) lines.push(`mv -v -- ${f} ${dir}/ || echo "Failed to move" ${f}`);
+      count += 1;
     }
     lines.push('');
   }
-  lines.push(`echo "Done: ${moved} photos organized in \${SOURCE_DIR}"`, '');
+  lines.push(`echo "Done: ${count} photos organized in \${SOURCE_DIR}"`, '');
   return lines.join('\n');
 }
 
+function renderScript() {
+  const mode = scriptMode();
+  document.getElementById('script-note').textContent = SCRIPT_NOTES[mode];
+  document.getElementById('script-text').textContent = buildScript(mode);
+}
+document.querySelectorAll('input[name="script-mode"]').forEach(r => r.addEventListener('change', renderScript));
+
 document.getElementById('export-btn').addEventListener('click', () => {
-  document.getElementById('script-text').textContent = buildScript();
+  renderScript();
   document.getElementById('script-dialog').showModal();
 });
 document.getElementById('copy-script').addEventListener('click', async () => {
   const text = document.getElementById('script-text').textContent;
   try {
     await navigator.clipboard.writeText(text);
-    toast('Copied the move script');
+    toast('Copied the script');
   } catch {
     const range = document.createRange();
     range.selectNodeContents(document.getElementById('script-text'));
@@ -1179,6 +1277,58 @@ document.getElementById('download-script').addEventListener('click', () => {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   toast('Downloaded organize_images.sh');
+});
+
+// ---------- Re-sort a category ----------
+let resortCat = null;
+
+function openResort(cat) {
+  if (!cat.count) { toast(`${cat.name} has no photos to re-sort`); return; }
+  resortCat = cat;
+  document.getElementById('resort-title').textContent = `Re-sort ${cat.name}`;
+  document.getElementById('resort-intro').textContent =
+    `Re-sorts the ${plural(cat.count, 'photo', 'photos')} in ${cat.name} with your note. ` +
+    'Photos can move to any category; those that fit no other rule stay here. Moved photos are marked Re-sorted in the rebuilt report. ' +
+    'Your other moves and trashed photos in this report are kept.';
+  document.getElementById('resort-note').value = '';
+  document.getElementById('resort-error').textContent = '';
+  document.getElementById('resort-cmd').textContent =
+    `cd ${shellQuote(META.app_dir || '.')}\nuv run python main.py --resort ~/Downloads/resort.json`;
+  document.getElementById('resort-dialog').showModal();
+}
+
+function buildResortRequest(cat, note, scope) {
+  const assignments = {};
+  for (const card of cards.values()) assignments[card.data.filename] = card.data.category;
+  return {
+    version: 1,
+    directory: META.directory,
+    source: cat.name,
+    note,
+    scope,
+    categories: [...cats.values()].filter(c => c.name !== TRASH)
+      .map(c => ({ name: c.name, rule: c.rule, status: c.status || 'kept' })),
+    assignments,
+    files: [...cat.grid.querySelectorAll('.card')].map(node => cardByEl.get(node).data.filename),
+  };
+}
+
+document.getElementById('resort-form').addEventListener('submit', e => {
+  const note = document.getElementById('resort-note').value.trim();
+  if (note.length < 10) {
+    e.preventDefault();
+    document.getElementById('resort-error').textContent = 'Describe which photos were misfiled and where they belong.';
+    return;
+  }
+  const scope = document.querySelector('input[name="resort-scope"]:checked').value;
+  const request = buildResortRequest(resortCat, note, scope);
+  const blob = new Blob([JSON.stringify(request, null, 2)], { type: 'application/json' });
+  const link = el('a', { href: URL.createObjectURL(blob), download: 'resort.json' });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  toast(`Downloaded resort.json for ${resortCat.name}. Run the command to re-sort.`);
 });
 
 // ---------- Save categories ----------
