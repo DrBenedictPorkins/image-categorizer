@@ -20,8 +20,8 @@ where reviewing every photo by hand is not practical.
 
 1. **Describe.** A vision model looks at each photo, writes a short description,
    and decides whether it is an accidental or failed shot (motion blur, pocket
-   shot, no subject). Descriptions are saved as they go; an interrupted run
-   resumes where it stopped.
+   shot, no subject). With `--describe-only` (see below), descriptions are saved
+   as they go and an interrupted run resumes where it stopped.
 2. **Sort.** A text model assigns every photo to a category using the descriptions
    only, so re-sorting takes minutes and never looks at the images again. Each
    category has a rule describing what belongs in it, and the list is saved and
@@ -30,7 +30,7 @@ where reviewing every photo by hand is not practical.
    trash them, and rename, merge or create categories.
 4. **Apply.** The report exports a bash script: move each photo into a folder named
    after its category, write `Category: <name>` into its caption (searchable in the
-   Photos app on Mac, iPhone and iPad), or both. Nothing is deleted.
+   Photos app on Mac and iPhone), or both. Nothing is deleted.
 
 The tool itself never moves, renames or deletes a photo.
 

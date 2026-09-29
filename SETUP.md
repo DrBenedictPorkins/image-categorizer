@@ -244,7 +244,7 @@ report downloads land in the browser's download folder, usually `~/Downloads`.
   `Category: <name>` into each photo's caption, or both. Nothing is deleted;
   trashed photos go to a `Trash` folder. Captions need exiftool
   (`brew install exiftool`, `sudo apt install libimage-exiftool-perl`, or
-  <https://exiftool.org> on Windows). Photos app search on Mac, iPhone and iPad
+  <https://exiftool.org> on Windows). Photos app search on Mac and iPhone
   finds captions after import.
 
 Review the downloaded script with the user before running it:

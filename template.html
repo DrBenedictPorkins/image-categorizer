@@ -1173,7 +1173,7 @@ function folderName(category) { return category.replace(/\//g, '-'); }
 
 const SCRIPT_NOTES = {
   move: 'Creates one folder per category inside the photo folder and moves each photo into its folder. Trashed photos go to a folder named Trash; nothing is deleted.',
-  caption: 'Writes "Category: <name>" into each photo\'s caption. An existing caption is kept, and a previous "Category:" part is replaced. Photos app search on Mac, iPhone and iPad finds captions after import. Requires exiftool (brew install exiftool).',
+  caption: 'Writes "Category: <name>" into each photo\'s caption. An existing caption is kept, and a previous "Category:" part is replaced. Photos app search on Mac and iPhone finds captions after import. Requires exiftool (brew install exiftool).',
   both: 'Writes each photo\'s category into its caption, then moves it into a folder named after its category. Trashed photos go to a Trash folder; nothing is deleted. Requires exiftool (brew install exiftool).',
 };
 
